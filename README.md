@@ -6,7 +6,7 @@
 
 ## Installation
 
-To instal, simply clone the repository and run the installation script.
+To build, you will need to have `RNAlib2` (the `ViennaRNA` C API) installed on your system. Installation can then be done by simply cloning the repository and running the installation script.
 ```
 git clone https://github.com/hmblair/fld
 cd fld
