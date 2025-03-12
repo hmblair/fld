@@ -30,6 +30,7 @@ add_executable(${PROJECT_NAME}
     src/nuc.cpp
     src/utils.cpp
     src/fold.cpp
+    src/preprocess.cpp
 )
 
 # Link libraries

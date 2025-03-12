@@ -6,6 +6,33 @@
 #include <iostream>
 #include <stdexcept>
 
+static inline const std::vector<std::string> _csv_columns = {
+    "name",
+    "sublibrary",
+    "five_const",
+    "five_padding",
+    "design",
+    "three_padding",
+    "barcode",
+    "three_const"
+};
+
+static inline std::string _csv_header() {
+    std::string header;
+    for (size_t ix = 0; ix < _csv_columns.size() - 1; ix++) {
+        header += _csv_columns[ix];
+        header += ",";
+    }
+    header += _csv_columns[_csv_columns.size() - 1];
+    return header;
+}
+
+static inline void _check_header(const std::string& header) {
+    if (header != _csv_header()) {
+        throw std::runtime_error("The columns in the .csv are not as expected.");
+    }
+}
+
 //
 // Barcoding related functions
 //
@@ -43,33 +70,29 @@ Construct _from_record(const std::string& record) {
     return Construct(
         columns[0],
         columns[1],
-        columns[1],
         columns[2],
         columns[3],
         columns[4],
         columns[5],
-        columns[6]
+        columns[6],
+        columns[7]
     );
 }
 
 Library _from_csv(const std::string& filename) {
 
-    if (!std::filesystem::is_regular_file(filename)) {
-        throw std::runtime_error("The file \"" + filename + "\" does not exist.");
-    }
+    _throw_if_not_exists(filename);
+
     std::ifstream file(filename);
     std::string line;
+
     std::getline(file, line);
+    _check_header(line);
 
     std::vector<Construct> sequences;
 
-    size_t ix = 0;
     while (std::getline(file, line)) {
         sequences.push_back(_from_record(line));
-        ix++;
-        if (ix >= 1000000) {
-            break;
-        }
     }
 
     return Library(sequences);
@@ -329,11 +352,7 @@ void Library::primerize(
     }
 }
 
-static inline std::string _csv_header() {
-    return (
-        "Name,Sublibrary,5' Constant,5' Padding,Design,3' Padding,Barcode,3' Constant"
-    );
-}
+
 
 void Library::to_csv(
     const std::string& filename

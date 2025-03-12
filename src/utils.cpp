@@ -15,6 +15,12 @@ std::string _txt_name(const std::string& prefix) {
     return prefix + ".txt";
 }
 
+void _throw_if_not_exists(const std::string& filename) {
+    if (!std::filesystem::is_regular_file(filename)) {
+        throw std::runtime_error("The file \"" + filename + "\" does not exist.");
+    }
+}
+
 void _throw_if_exists(const std::string& filename) {
     if (std::filesystem::is_regular_file(filename)) {
         throw std::runtime_error("The file \"" + filename + "\" already exists.");
@@ -63,4 +69,33 @@ std::vector<std::string> _split_by_delimiter(const std::string& s, char delimite
     }
     tokens.push_back(token);
     return tokens;
+}
+
+static inline std::string _remove_char(
+    const std::string &original,
+    char to_remove
+) {
+    if (original.find(to_remove) != std::string::npos) {
+        std::string tmp = original;
+        tmp.erase(std::remove(tmp.begin(),tmp.end(), to_remove),tmp.end());
+        return tmp;
+    }
+    return original;
+}
+
+std::string _escape_with_quotes(const std::string& original) {
+    std::string tmp = _remove_char(original, '\"');
+    return "\"" + _remove_char(tmp, '\"') + "\"";
+}
+
+bool _is_fasta_header(const std::string& line) {
+    return line[0] == '>';
+}
+
+std::string _get_fasta_name(const std::string& line) {
+    return line.substr(1);
+}
+
+std::string _get_fasta_seq(const std::string& line) {
+    return line;
 }

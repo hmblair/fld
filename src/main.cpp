@@ -1,9 +1,10 @@
 #include "main.hpp"
+#include <cstdlib>
 
 typedef argparse::ArgumentParser Parser;
 class Options {
 public:
-    Parser program;
+    Parser fld;
     std::string file;
     std::string prefix;
     bool overwrite;
@@ -17,72 +18,99 @@ public:
     int max_stem_gu;
     int closing_gc;
     int barcode_stem_length;
+    std::string sublibrary;
 
-    Options() : program("fld") { };
+    Options() : fld("fld") { };
     void parse(int argc, char** argv) {
-        program.add_argument("file")
+        Parser design("design");
+        design.add_argument("file")
             .required()
-            .help("The input csv files.");
-        program.add_argument("-o", "--output")
+            .help("The input .csv file.");
+        design.add_argument("-o", "--output")
             .required()
             .help("The output prefix.");
-        program.add_argument("--pad-to")
+        design.add_argument("--pad-to")
             .required()
             .scan<'d', int>()
             .help("Pad the design region of all sequences to this length.");
-        program.add_argument("--barcode-stem-length")
+        design.add_argument("--barcode-stem-length")
             .required()
             .scan<'d', int>()
             .help("The length of the stem of each barcode.");
-        program.add_argument("--overwrite")
+        design.add_argument("--overwrite")
             .default_value(false)
             .implicit_value(true)
             .help("Overwrite any existing file.");
-        program.add_argument("--five-const")
+        design.add_argument("--five-const")
             .default_value("ACTCGAGTAGAGTCGAAAA")
             .help("The 5' constant sequence.");
-        program.add_argument("--three-const")
+        design.add_argument("--three-const")
             .default_value("AAAAGAAACAACAACAACAAC")
             .help("The 3' constant sequence.");
-        program.add_argument("--min-stem-length")
+        design.add_argument("--min-stem-length")
             .default_value(6)
             .scan<'d', int>()
             .help("The minimum length of the stem of a hairpin.");
-        program.add_argument("--max-stem-length")
+        design.add_argument("--max-stem-length")
             .default_value(9)
             .scan<'d', int>()
             .help("The maximum length of the stem of a hairpin.");
-        program.add_argument("--max-au")
+        design.add_argument("--max-au")
             .default_value(SIZE_MAX)
             .scan<'d', int>()
             .help("The maximum AU content of any stem.");
-        program.add_argument("--max-gc")
+        design.add_argument("--max-gc")
             .default_value(SIZE_MAX)
             .scan<'d', int>()
             .help("The maximum GC content of any stem.");
-        program.add_argument("--max-gu")
+        design.add_argument("--max-gu")
             .default_value(0)
             .scan<'d', int>()
             .help("The maximum GU content of any stem.");
-        program.add_argument("--closing-gc")
+        design.add_argument("--closing-gc")
             .default_value(1)
             .scan<'d', int>()
             .help("The number of GC pairs to close each stem with.");
 
-        program.parse_args(argc, argv);
-        file = program.get<std::string>("file");
-        prefix = program.get<std::string>("output");
-        overwrite = program.get<bool>("overwrite");
-        five_const = program.get<std::string>("five-const");
-        three_const = program.get<std::string>("three-const");
-        pad = program.get<int>("pad-to");
-        min_stem_length = program.get<int>("min-stem-length");
-        max_stem_length = program.get<int>("max-stem-length");
-        max_stem_au = program.get<int>("max-au");
-        max_stem_gc = program.get<int>("max-gc");
-        max_stem_gu = program.get<int>("max-gu");
-        closing_gc = program.get<int>("closing-gc");
-        barcode_stem_length = program.get<int>("barcode-stem-length");
+        Parser preprocess("preprocess");
+        preprocess.add_argument("file")
+            .required()
+            .help("The input .fasta file.");
+        preprocess.add_argument("-o", "--output")
+            .required()
+            .help("The output .csv file.");
+        preprocess.add_argument("-s", "--sublibrary")
+            .help("The sublibrary this .fasta belongs to.")
+            .default_value("");
+        preprocess.add_argument("--overwrite")
+            .default_value(false)
+            .implicit_value(true)
+            .help("Overwrite the existing file.");
+
+        fld.add_subparser(design);
+        fld.add_subparser(preprocess);
+        fld.parse_args(argc, argv);
+
+        if (fld.is_subcommand_used("preprocess")) {
+            file = preprocess.get<std::string>("file");
+            overwrite = preprocess.get<bool>("overwrite");
+            prefix = preprocess.get<std::string>("output");
+            sublibrary = preprocess.get<std::string>("sublibrary");
+        } else {
+            file = design.get<std::string>("file");
+            overwrite = design.get<bool>("overwrite");
+            prefix = design.get<std::string>("output");
+            five_const = design.get<std::string>("five-const");
+            three_const = design.get<std::string>("three-const");
+            pad = design.get<int>("pad-to");
+            min_stem_length = design.get<int>("min-stem-length");
+            max_stem_length = design.get<int>("max-stem-length");
+            max_stem_au = design.get<int>("max-au");
+            max_stem_gc = design.get<int>("max-gc");
+            max_stem_gu = design.get<int>("max-gu");
+            closing_gc = design.get<int>("closing-gc");
+            barcode_stem_length = design.get<int>("barcode-stem-length");
+        }
     }
 };
 
@@ -105,6 +133,21 @@ int main(int argc, char** argv) {
     } catch (const std::exception& e) {
         std::cerr << "Argument error: " << e.what() << "\n";
         return EXIT_FAILURE;
+    }
+
+    if (opt.fld.is_subcommand_used("preprocess")) {
+        try {
+            _preprocess(
+                opt.file,
+                opt.prefix,
+                opt.overwrite,
+                opt.sublibrary
+            );
+        } catch (const std::exception& e) {
+            std::cerr << "Error: " << e.what() << "\n";
+            return EXIT_FAILURE;
+        }
+        return EXIT_SUCCESS;
     }
 
     version();
