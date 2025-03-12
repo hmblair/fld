@@ -27,7 +27,7 @@ If there are no existing library elements for the input designs, then you only n
 ```
 fld preprocess -o library.csv -s genome_scan designs.fasta
 ```
-The `-s` flag is optional and fills in the `sublibrary` header of the `.csv`. (If your designs do have existing library elements, you will need to create this `.csv` manually.)
+The `-s` flag is optional and fills in the `sublibrary` column of the `.csv`. (If your designs do have existing library elements, you will need to create this `.csv` manually.)
 
 If you have multiple sublibraries, you should preprocess them separately and then use a program like `csvstack` to combine them together.
 
@@ -37,9 +37,9 @@ Once the designs are in the proper file, the library elements can be added. A mi
 ```
 fld design -o out --pad-to 130 --barcode-stem-length 10 library.csv
 ```
-The output file will be `out.csv` with the same headers as the input, but with the appropriate columns filled in. In addition, `out.fasta` and `out.txt` will be generated as well.
+The output file will be `out.csv` with the same columns as the input, but with the appropriate columns filled in. In addition, `out.fasta` and `out.txt` will be generated as well.
 
-One advantage of `fld` is that the output has the same columns as the input. This allows for you to append new (preprocessed) designs to an output, then run `fld` again, and it will respect the existing library elements (e.g. it will not repeat barcodes).
+That the output has the same columns as the input allows for you to append new (preprocessed) designs to an output, then run `fld design` again, and it will respect the existing library elements (e.g. it will not repeat barcodes).
 
 Additional settings can be accessed via `fld design --help`.
 
