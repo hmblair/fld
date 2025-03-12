@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 # Set CXX standard
-set(CMAKE_CXX_COMPILER /opt/homebrew/opt/gcc/bin/g++-14)
+set(CMAKE_CXX_COMPILER g++-14)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
