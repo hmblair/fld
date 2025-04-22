@@ -84,12 +84,11 @@ static inline std::string _remove_char(
 }
 
 std::string _escape_with_quotes(const std::string& original) {
-    std::string tmp = _remove_char(original, '\"');
-    return "\"" + _remove_char(tmp, '\"') + "\"";
+    return "\"" + _remove_char(original, '\"') + "\"";
 }
 
 bool _is_fasta_header(const std::string& line) {
-    return line[0] == '>';
+    return !line.empty() && line[0] == '>';
 }
 
 std::string _get_fasta_name(const std::string& line) {
@@ -98,4 +97,156 @@ std::string _get_fasta_name(const std::string& line) {
 
 std::string _get_fasta_seq(const std::string& line) {
     return line;
+}
+
+double _frac(size_t val, size_t total) {
+    double _val = static_cast<double>(val);
+    double _total = static_cast<double>(total);
+    return _val / _total ;
+}
+
+double _percent(size_t val, size_t total) {
+    return _frac(val, total) * 100;
+}
+
+static inline std::string _remove_from_start(
+    const std::string& str,
+    char ch
+) {
+    size_t index = 0;
+    while (index < str.length() && str[index] == ch) {
+        index++;
+    }
+    return str.substr(index);
+}
+
+template <typename T>
+void _init_parser(
+    Parser& parser,
+    const std::string& name,
+    const std::string& help
+);
+
+template <typename T>
+void _init_parser(
+    Parser& parser,
+    const std::string& name,
+    const std::string& help,
+    T default_value
+);
+
+template<>
+void _init_parser<bool>(
+    Parser& parser,
+    const std::string& name,
+    const std::string& help
+) {
+    parser.add_argument(name)
+        .default_value(false)
+        .implicit_value(true)
+        .help(help);
+}
+
+template<>
+void _init_parser<bool>(
+    Parser& parser,
+    const std::string& name,
+    const std::string& help,
+    bool default_value
+) {
+    parser.add_argument(name)
+        .default_value(default_value)
+        .implicit_value(!default_value)
+        .help(help);
+}
+
+template<>
+void _init_parser<int>(
+    Parser& parser,
+    const std::string& name,
+    const std::string& help
+) {
+    parser.add_argument(name)
+        .required()
+        .scan<'d', int>()
+        .help(help);
+}
+
+template<>
+void _init_parser<int>(
+    Parser& parser,
+    const std::string& name,
+    const std::string& help,
+    int default_value
+) {
+    parser.add_argument(name)
+        .scan<'d', int>()
+        .default_value(default_value)
+        .help(help);
+}
+
+template<>
+void _init_parser<std::string>(
+    Parser& parser,
+    const std::string& name,
+    const std::string& help
+) {
+    parser.add_argument(name)
+        .required()
+        .help(help);
+}
+
+template<>
+void _init_parser<std::string>(
+    Parser& parser,
+    const std::string& name,
+    const std::string& help,
+    std::string default_value
+) {
+    parser.add_argument(name)
+        .default_value(default_value)
+        .help(help);
+}
+
+template <typename T>
+Arg<T>::Arg (
+    Parser& parser,
+    const std::string& name,
+    const std::string& help
+) : _parser(parser), _name(name) {
+    _init_parser<T>(parser, name, help);
+}
+
+template <typename T>
+Arg<T>::Arg (
+    Parser& parser,
+    const std::string& name,
+    const std::string& help,
+    T default_value
+) : _parser(parser), _name(name) {
+    _init_parser<T>(parser, name, help, default_value);
+}
+
+template <typename T>
+T Arg<T>::value() const {
+    return _parser.template get<T>(_name);
+}
+
+template <typename T>
+Arg<T>::operator T() const {
+    return value();
+}
+
+template class Arg<int>;
+template class Arg<bool>;
+template class Arg<std::string>;
+
+Program::Program(std::string name) : _name(name), _parser(name) {};
+
+void Program::parse(int argc, char** argv) {
+    _parser.parse_args(argc, argv);
+}
+
+bool Program::used(const Parser& parent) const {
+    return parent.is_subcommand_used(_name);
 }

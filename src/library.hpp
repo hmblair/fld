@@ -2,11 +2,34 @@
 #define LIBRARY_H
 
 #include "nuc.hpp"
+#include "barcodes.hpp"
 #include "utils.hpp"
-#include <unordered_set>
+
+class DesignArgs : public Program {
+public:
+
+    Arg<std::string> file;
+    Arg<std::string> output;
+    Arg<int> pad_to;
+    Arg<int> barcode_length;
+    Arg<bool> overwrite;
+    Arg<std::string> five_const;
+    Arg<std::string> three_const;
+    Arg<int> min_stem_length;
+    Arg<int> max_stem_length;
+    Arg<int> max_au;
+    Arg<int> max_gc;
+    Arg<int> max_gu;
+    Arg<int> closing_gc;
+    Arg<int> spacer;
+
+    DesignArgs();
+
+};
 
 class Construct {
 public:
+
     Construct(
         std::string name,
         std::string sublibrary,
@@ -22,8 +45,9 @@ public:
     std::string name() const;
     size_t length() const;
     size_t design_length() const;
+    void to_dna();
     void to_rna();
-    void to_dna(std::mt19937 &gen);
+    void replace_polybases(std::mt19937 &gen);
     void primerize(
         const std::string& five,
         const std::string& three
@@ -54,6 +78,7 @@ public:
     void remove_padding();
 
 private:
+
     // Metadata
     std::string _name;
     std::string _sublibrary;
@@ -64,18 +89,26 @@ private:
     std::string _threep_padding;
     std::string _barcode;
     std::string _threep_const;
+
 };
 
 class Library {
 public:
+
     Library() = default;
     Library(std::vector<Construct>& sequences);
 
     size_t size() const;
     size_t barcodes() const;
 
+    void to_csv(const std::string& filename) const;
+    void to_txt(const std::string& filename) const;
+    void to_fasta(const std::string& filename) const;
+    void save(const std::string& prefix) const;
+
     void to_rna();
     void to_dna();
+    void replace_polybases();
 
     void barcode(
         size_t stem_length,
@@ -99,37 +132,33 @@ public:
         const std::string& three
     );
 
-    void to_csv(const std::string& filename) const;
-    void to_txt(const std::string& filename) const;
-    void to_fasta(const std::string& filename) const;
-    void save(const std::string& prefix) const;
-
-
 private:
+
     // For RNG
     std::mt19937 _gen;
-    // The library constructs and barcodes
+    // The library constructs
     std::vector<Construct> _sequences;
+    // A hash map for easy barcode lookup
     std::unordered_set<std::string> _barcodes;
+
 };
 
-Construct _from_record(const std::string& record);
-Library _from_csv(const std::string& filename);
-
-void _add_library_elements(
-    Library& library,
-    size_t pad_to_length,
-    size_t barcode_stem_length,
-    size_t min_stem_length,
-    size_t max_stem_length,
-    size_t max_stem_au,
-    size_t max_stem_gc,
-    size_t max_stem_gu,
-    size_t closing_gu,
+void _design(
+    const std::string& file,
+    const std::string& output,
+    bool overwrite,
+    int pad,
+    int barcode_length,
+    int min_stem_length,
+    int max_stem_length,
+    int max_stem_au,
+    int max_stem_gc,
+    int max_stem_gu,
+    int closing_gc,
+    int spacer,
     const std::string& five_const,
     const std::string& three_const
 );
-
 
 #endif
 

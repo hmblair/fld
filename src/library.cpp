@@ -1,10 +1,11 @@
 #include "library.hpp"
-#include "fold.hpp"
-#include "nuc.hpp"
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <stdexcept>
+#include <indicators/block_progress_bar.hpp>
+
+using namespace indicators;
 
 static inline const std::vector<std::string> _csv_columns = {
     "name",
@@ -33,39 +34,71 @@ static inline void _check_header(const std::string& header) {
     }
 }
 
+StemContent::StemContent(
+    size_t max_au,
+    size_t max_gc,
+    size_t max_gu,
+    size_t closing_gc
+) : max_au(max_au),
+    max_gc(max_gc),
+    max_gu(max_gu),
+    closing_gc(closing_gc) { };
+
 //
 // Barcoding related functions
 //
 
-static inline std::string _random_barcode(
-    size_t stem_length,
-    std::mt19937 &gen,
-    size_t max_stem_au,
-    size_t max_stem_gc,
-    size_t max_stem_gu,
-    size_t closing_gc,
-    const std::unordered_set<std::string>& existing
-) {
-    std::string barcode;
-    do {
-        barcode = _random_hairpin(
-            stem_length,
-            gen,
-            max_stem_au,
-            max_stem_gc,
-            max_stem_gu,
-            closing_gc
-        );
-    }
-    while (_is_hamming_neighbour(barcode, existing));
-    return barcode;
-}
+// static inline std::string _random_barcode_with_fold(
+//     const std::string& sequence,
+//     size_t stem_length,
+//     std::mt19937 &gen,
+//     size_t max_stem_au,
+//     size_t max_stem_gc,
+//     size_t max_stem_gu,
+//     size_t closing_gc,
+//     const std::unordered_set<std::string>& existing,
+//     double cutoff,
+//     size_t max_attempts
+// ) {
+//     std::string barcode, best_barcode = _random_barcode(
+//         stem_length,
+//         gen,
+//         max_stem_au,
+//         max_stem_gc,
+//         max_stem_gu,
+//         closing_gc,
+//         existing
+//     );
+//     if (max_attempts <= 0) {
+//         return best_barcode;
+//     }
+//     double score = 0, best_score = _score_hairpin(sequence, barcode, 4);
+//     size_t attempts = 0;
+//     while (score < cutoff && attempts < max_attempts) {
+//         barcode = _random_barcode(
+//                 stem_length,
+//                 gen,
+//                 max_stem_au,
+//                 max_stem_gc,
+//                 max_stem_gu,
+//                 closing_gc,
+//                 existing
+//         );
+//         score = _score_hairpin(sequence, barcode, 4);
+//         attempts++;
+//         if (score > best_score) {
+//             best_score = score;
+//             best_barcode = barcode;
+//         }
+//     }
+//     return best_barcode;
+// }
 
 //
 // Construct
 //
 
-Construct _from_record(const std::string& record) {
+static inline Construct _from_record(const std::string& record) {
     std::vector<std::string> columns = _split_by_delimiter(record, ',');
     return Construct(
         columns[0],
@@ -89,13 +122,13 @@ Library _from_csv(const std::string& filename) {
     std::getline(file, line);
     _check_header(line);
 
-    std::vector<Construct> sequences;
+    std::vector<Construct> constructs;
 
     while (std::getline(file, line)) {
-        sequences.push_back(_from_record(line));
+        constructs.push_back(_from_record(line));
     }
 
-    return Library(sequences);
+    return Library(constructs);
 
 }
 
@@ -115,7 +148,7 @@ Construct::Construct(
     _design(design),
     _threep_padding(threep_padding),
     _barcode(barcode),
-    _threep_const(threep_const) { };
+    _threep_const(threep_const) {};
 
 std::string Construct::str() const {
     return (
@@ -142,6 +175,9 @@ std::string Construct::csv_record() const {
 }
 
 std::string Construct::name() const {
+    if (_sublibrary.empty()) {
+        return _name;
+    }
     return _name + " (" + _sublibrary + ")";
 }
 
@@ -153,6 +189,15 @@ size_t Construct::design_length() const {
     return _design.length();
 }
 
+void Construct::replace_polybases(std::mt19937 &gen) {
+    _fivep_const = _replace_polybases(_fivep_const, gen);
+    _fivep_padding = _replace_polybases(_fivep_padding, gen);
+    _design = _replace_polybases(_design, gen);
+    _threep_padding = _replace_polybases(_threep_padding, gen);
+    _barcode = _replace_polybases(_barcode, gen);
+    _threep_const = _replace_polybases(_threep_const, gen);
+}
+
 void Construct::to_rna() {
     _fivep_const = _to_rna(_fivep_const);
     _fivep_padding = _to_rna(_fivep_padding);
@@ -162,15 +207,13 @@ void Construct::to_rna() {
     _threep_const = _to_rna(_threep_const);
 }
 
-void Construct::to_dna(
-    std::mt19937 &gen
-) {
-    _fivep_const = _to_dna(_fivep_const, gen);
-    _fivep_padding = _to_dna(_fivep_padding, gen);
-    _design = _to_dna(_design, gen);
-    _threep_padding = _to_dna(_threep_padding, gen);
-    _barcode = _to_dna(_barcode, gen);
-    _threep_const = _to_dna(_threep_const, gen);
+void Construct::to_dna() {
+    _fivep_const = _to_dna(_fivep_const);
+    _fivep_padding = _to_dna(_fivep_padding);
+    _design = _to_dna(_design);
+    _threep_padding = _to_dna(_threep_padding);
+    _barcode = _to_dna(_barcode);
+    _threep_const = _to_dna(_threep_const);
 }
 
 void Construct::replace_barcode(
@@ -191,11 +234,6 @@ void Construct::replace_barcode(
         closing_gc,
         existing
     );
-    // double score = _score_hairpin(
-    //    _design,
-    //    _barcode,
-    //    4
-    //);
     existing.insert(_barcode);
 }
 
@@ -260,11 +298,9 @@ static inline void _insert_or_remove(
     std::unordered_set<std::string>& barcodes
 ) {
     if (sequence.has_barcode()) {
-        bool is_neighbour = _is_hamming_neighbour(sequence.barcode(), barcodes);
-        if (is_neighbour) {
+        bool inserted =  _insert_if_not_neighbour(sequence.barcode(), barcodes);
+        if (!inserted) {
             sequence.remove_barcode();
-        } else {
-            barcodes.insert(sequence.barcode());
         }
     }
 }
@@ -294,7 +330,13 @@ void Library::to_rna() {
 
 void Library::to_dna() {
     for (auto& sequence : _sequences) {
-        sequence.to_dna(_gen);
+        sequence.to_dna();
+    }
+}
+
+void Library::replace_polybases() {
+    for (auto& sequence : _sequences) {
+        sequence.replace_polybases(_gen);
     }
 }
 
@@ -308,6 +350,21 @@ void Library::pad(
     size_t max_stem_gu,
     size_t closing_gc
 ) {
+
+    using namespace indicators;
+
+    // show_console_cursor(false);
+
+    BlockProgressBar bar{
+        option::BarWidth{30},
+        option::Start{"["},
+        option::End{"]"},
+        option::PrefixText{"Padding   "},
+        option::ForegroundColor{Color::white}  ,
+        option::FontStyles{std::vector<FontStyle>{FontStyle::bold}}
+    };
+
+    size_t count = 0;
     for (auto& sequence : _sequences) {
         sequence.pad(
             padded_size,
@@ -320,7 +377,12 @@ void Library::pad(
             closing_gc,
             _gen
         );
+        count++;
+        bar.set_progress( (count * 100) / size());
     }
+
+    // show_console_cursor(true);
+
 }
 
 void Library::barcode(
@@ -330,6 +392,18 @@ void Library::barcode(
     size_t max_stem_gu,
     size_t closing_gc
 ) {
+
+
+    BlockProgressBar bar{
+        option::BarWidth{30},
+        option::Start{"["},
+        option::End{"]"},
+        option::PrefixText{"Barcoding "},
+        option::ForegroundColor{Color::white}  ,
+        option::FontStyles{std::vector<FontStyle>{FontStyle::bold}}
+    };
+
+    size_t count = 0;
     for (auto& sequence : _sequences) {
         sequence.replace_barcode(
             stem_length,
@@ -340,7 +414,10 @@ void Library::barcode(
             closing_gc,
             _barcodes
         );
+        count++;
+        bar.set_progress( (count * 100) / size());
     }
+
 }
 
 void Library::primerize(
@@ -351,8 +428,6 @@ void Library::primerize(
         sequence.primerize(five, three);
     }
 }
-
-
 
 void Library::to_csv(
     const std::string& filename
@@ -396,8 +471,12 @@ static inline size_t _stem_counts(
     size_t length,
     size_t max_au,
     size_t max_gc,
-    size_t max_gu
+    size_t max_gu,
+    size_t closing_gc
 ) {
+    // Adjust for closing GC base pairs
+    max_gc -= closing_gc;
+
     std::vector<std::vector<size_t>> prev(max_au + 1, std::vector<size_t>(max_gc + 1, 0));
     std::vector<std::vector<size_t>> cur(max_au + 1, std::vector<size_t>(max_gc + 1, 0));
 
@@ -439,8 +518,8 @@ static inline void _check_stem_length(
     if (min_stem_length < STEM_MIN) {
         throw std::runtime_error("The minimum stem length must be at least " + std::to_string(STEM_MIN) + ".");
     }
-    if (barcode_stem_length < STEM_MIN) {
-        throw std::runtime_error("The barcode stem length must be at least " + std::to_string(STEM_MIN) + ".");
+    if (barcode_stem_length > 0 && barcode_stem_length < STEM_MIN) {
+        throw std::runtime_error("A nonzero barcode stem must be at least " + std::to_string(STEM_MIN) + " base pairs.");
     }
 }
 
@@ -452,7 +531,7 @@ static inline void _check_if_enough_bases(
 ) {
     size_t _max_possible_stem = max_stem_au + max_stem_gc + max_stem_gu;
     if (_max_possible_stem < max_stem_length) {
-        throw std::runtime_error("The combined maximum AU, GC, and GU counts (" + std::to_string(max_stem_au) + ", " + std::to_string(max_stem_gc) + " and " + std::to_string(max_stem_gc) + ") must be greater than the maximum stem length.");
+        throw std::runtime_error("The combined maximum AU, GC, and GU counts (" + std::to_string(max_stem_au) + ", " + std::to_string(max_stem_gc) + " and " + std::to_string(max_stem_gu) + ") must be greater than the maximum stem length.");
     }
 }
 
@@ -461,41 +540,53 @@ static inline void _check_if_enough_barcodes(
     size_t barcode_stem_length,
     size_t max_stem_au,
     size_t max_stem_gc,
-    size_t max_stem_gu
+    size_t max_stem_gu,
+    size_t closing_gc
 ) {
     size_t _counts = _stem_counts(
         barcode_stem_length,
         max_stem_au,
         max_stem_gc,
-        max_stem_gu
+        max_stem_gu,
+        closing_gc
     );
     if (_counts < library_size) {
-        throw std::runtime_error("The barcode length (" + std::to_string(barcode_stem_length) + ") and maximum base-pair counts (" + std::to_string(max_stem_au) + " and " + std::to_string(max_stem_gc) + ") are only large enough to accomodate " + std::to_string(_counts) + " of the required " + std::to_string(library_size) + " unique barcodes.");
+        throw std::runtime_error("The barcode length (" + std::to_string(barcode_stem_length) + ") and maximum base-pair counts (" + std::to_string(max_stem_au) + ", " + std::to_string(max_stem_gc) + " and " + std::to_string(max_stem_gu) + ") are only large enough to accomodate " + std::to_string(_counts) + " of the required " + std::to_string(library_size) + " unique barcodes.");
     }
 }
 
-class _STEM_CONSTRAINTS {
-public:
-    size_t min_stem_length;
-    size_t max_stem_length;
-    size_t max_stem_au;
-    size_t max_stem_gc;
-    size_t max_stem_gu;
-    size_t closing_gc;
-    _STEM_CONSTRAINTS (
-        size_t min_stem_length,
-        size_t max_stem_length,
-        size_t max_stem_au,
-        size_t max_stem_gc,
-        size_t max_stem_gu,
-        size_t closing_gc
-    ) : min_stem_length(min_stem_length),
-        max_stem_length(max_stem_length),
-        max_stem_au(max_stem_au),
-        max_stem_gc(max_stem_gc),
-        max_stem_gu(max_stem_gu),
-        closing_gc(closing_gc) { };
-};
+
+void _run_checks(
+    const Library& library,
+    size_t barcode_stem_length,
+    size_t min_stem_length,
+    size_t max_stem_length,
+    size_t max_stem_au,
+    size_t max_stem_gc,
+    size_t max_stem_gu,
+    size_t closing_gc
+) {
+    _check_stem_length(
+        min_stem_length,
+        barcode_stem_length
+    );
+    _check_if_enough_bases(
+        max_stem_length,
+        max_stem_au,
+        max_stem_gc,
+        max_stem_gu
+    );
+    if (barcode_stem_length > 0) {
+        _check_if_enough_barcodes(
+            library.size(),
+            barcode_stem_length,
+            max_stem_au,
+            max_stem_gc,
+            max_stem_gu,
+            closing_gc
+        );
+    }
+}
 
 void _add_library_elements(
     Library& library,
@@ -507,55 +598,176 @@ void _add_library_elements(
     size_t max_stem_gc,
     size_t max_stem_gu,
     size_t closing_gc,
+    size_t poly_a_spacer,
     const std::string& five_const,
     const std::string& three_const
 ) {
 
-    _check_stem_length(
+    _run_checks(
+        library,
+        barcode_stem_length,
         min_stem_length,
-        barcode_stem_length
-    );
-    _check_if_enough_bases(
         max_stem_length,
         max_stem_au,
         max_stem_gc,
-        max_stem_gu
-    );
-    _check_if_enough_barcodes(
-        library.size(),
-        barcode_stem_length,
-        max_stem_au,
-        max_stem_gc,
-        max_stem_gu
+        max_stem_gu,
+        closing_gc
     );
 
-    library.to_dna();
+    // Also converts U to T
+    library.replace_polybases();
 
-    std::cout << "     Padding..." << std::flush;
+    std::cout << "\n";
+    std::cout << "Processing " << std::to_string(library.size()) << " sequences." << std::endl;
+    std::cout << "───────────────────────────────────────────────\n";
+
     library.pad(
         pad_to_length,
         min_stem_length,
         max_stem_length,
-        2,
+        poly_a_spacer,
         max_stem_au,
         max_stem_gc,
         max_stem_gu,
         closing_gc
     );
-    std::cout << "        DONE" << std::endl;
-    std::cout << "     Barcoding..." << std::flush;
-    library.barcode(
-        barcode_stem_length,
-        max_stem_au,
-        max_stem_gc,
-        max_stem_gu,
-        closing_gc
-    );
-    std::cout << "      DONE" << std::endl;
-    std::cout << "     Primerizing..." << std::flush;
-    library.primerize(five_const, three_const);
-    std::cout << "    DONE" << std::endl;
+    if (barcode_stem_length > 0) {
+        std::cout << std::endl;
+        library.barcode(
+            barcode_stem_length,
+            max_stem_au,
+            max_stem_gc,
+            max_stem_gu,
+            closing_gc
+        );
+    }
     std::cout << "\n";
+    std::cout << "\n";
+    library.primerize(five_const, three_const);
 }
 
+void _design(
+    const std::string& file,
+    const std::string& output,
+    bool overwrite,
+    int pad,
+    int barcode_length,
+    int min_stem_length,
+    int max_stem_length,
+    int max_stem_au,
+    int max_stem_gc,
+    int max_stem_gu,
+    int closing_gc,
+    int spacer,
+    const std::string& five_const,
+    const std::string& three_const
+) {
 
+    // Remove any existing output files
+    _remove_if_exists_all(
+        output,
+        overwrite
+    );
+    // Load the library from the provided .csv
+    Library library = _from_csv(file);
+    // Add all desired library elements
+    _add_library_elements(
+       library,
+       pad,
+       barcode_length,
+       min_stem_length,
+       max_stem_length,
+       max_stem_au,
+       max_stem_gc,
+       max_stem_gu,
+       closing_gc,
+       spacer,
+       five_const,
+       three_const
+    );
+    // Save to disk
+    library.save(output);
+
+}
+
+//
+// Argument parsing
+//
+
+// Parser name
+static inline std::string _PARSER_NAME = "design";
+
+// File argument
+static inline std::string _FILE_NAME = "file";
+static inline std::string _FILE_HELP = "The input .csv file.";
+
+// Output argument
+static inline std::string _OUTPUT_NAME = "-o";
+static inline std::string _OUTPUT_LONG_NAME = "--output";
+static inline std::string _OUTPUT_HELP = "The output prefix.";
+
+// Required arguments
+static inline std::string _PAD_TO_NAME = "--pad-to";
+static inline std::string _PAD_TO_HELP = "Pad the design region of all sequences to this length.";
+static inline std::string _BARCODE_LENGTH_NAME = "--barcode-length";
+static inline int _BARCODE_LENGTH_DEFAULT = 0;
+static inline std::string _BARCODE_LENGTH_HELP = "The length of the stem of each barcode. A value of 0 disables barcoding.";
+
+// Optional arguments with defaults
+static inline std::string _OVERWRITE_NAME = "--overwrite";
+static inline std::string _OVERWRITE_HELP = "Overwrite any existing file.";
+
+static inline std::string _FIVE_CONST_NAME = "--five-const";
+static inline std::string _FIVE_CONST_DEFAULT = "ACTCGAGTAGAGTCGAAAA";
+static inline std::string _FIVE_CONST_HELP = "The 5' constant sequence.";
+
+static inline std::string _THREE_CONST_NAME = "--three-const";
+static inline std::string _THREE_CONST_DEFAULT = "AAAAGAAACAACAACAACAAC";
+static inline std::string _THREE_CONST_HELP = "The 3' constant sequence.";
+
+static inline std::string _MIN_STEM_LENGTH_NAME = "--min-stem-length";
+static inline int _MIN_STEM_LENGTH_DEFAULT = 7;
+static inline std::string _MIN_STEM_LENGTH_HELP = "The minimum length of the stem of a hairpin.";
+
+static inline std::string _MAX_STEM_LENGTH_NAME = "--max-stem-length";
+static inline int _MAX_STEM_LENGTH_DEFAULT = 9;
+static inline std::string _MAX_STEM_LENGTH_HELP = "The maximum length of the stem of a hairpin.";
+
+static inline std::string _MAX_AU_NAME = "--max-au";
+static inline int _MAX_AU_DEFAULT = 13;
+static inline std::string _MAX_AU_HELP = "The maximum AU content of any stem.";
+
+static inline std::string _MAX_GC_NAME = "--max-gc";
+static inline int _MAX_GC_DEFAULT = 13;
+static inline std::string _MAX_GC_HELP = "The maximum GC content of any stem.";
+
+static inline std::string _MAX_GU_NAME = "--max-gu";
+static inline int _MAX_GU_DEFAULT = 0;
+static inline std::string _MAX_GU_HELP = "The maximum GU content of any stem.";
+
+static inline std::string _CLOSING_GC_NAME = "--closing-gc";
+static inline int _CLOSING_GC_DEFAULT = 1;
+static inline std::string _CLOSING_GC_HELP = "The number of GC pairs to close each stem with.";
+
+static inline std::string _SPACER_NAME = "--spacer";
+static inline int _SPACER_DEFAULT = 2;
+static inline std::string _SPACER_HELP = "The length of the polyA spacer used in between consecutive padding stems.";
+
+DesignArgs::DesignArgs() :
+    Program(_PARSER_NAME),
+    file(_parser, _FILE_NAME, _FILE_HELP),
+    output(_parser, _OUTPUT_NAME, _OUTPUT_HELP),
+    pad_to(_parser, _PAD_TO_NAME, _PAD_TO_HELP),
+    barcode_length(_parser, _BARCODE_LENGTH_NAME, _BARCODE_LENGTH_HELP, _BARCODE_LENGTH_DEFAULT),
+    overwrite(_parser, _OVERWRITE_NAME, _OVERWRITE_HELP),
+    five_const(_parser, _FIVE_CONST_NAME, _FIVE_CONST_HELP, _FIVE_CONST_DEFAULT),
+    three_const(_parser, _THREE_CONST_NAME, _THREE_CONST_HELP, _THREE_CONST_DEFAULT),
+    min_stem_length(_parser, _MIN_STEM_LENGTH_NAME, _MIN_STEM_LENGTH_HELP, _MIN_STEM_LENGTH_DEFAULT),
+    max_stem_length(_parser, _MAX_STEM_LENGTH_NAME, _MAX_STEM_LENGTH_HELP, _MAX_STEM_LENGTH_DEFAULT),
+    max_au(_parser, _MAX_AU_NAME, _MAX_AU_HELP, _MAX_AU_DEFAULT),
+    max_gc(_parser, _MAX_GC_NAME, _MAX_GC_HELP, _MAX_GC_DEFAULT),
+    max_gu(_parser, _MAX_GU_NAME, _MAX_GU_HELP, _MAX_GU_DEFAULT),
+    closing_gc(_parser, _CLOSING_GC_NAME, _CLOSING_GC_HELP, _CLOSING_GC_DEFAULT),
+    spacer(_parser, _SPACER_NAME, _SPACER_HELP, _SPACER_DEFAULT) {
+
+}

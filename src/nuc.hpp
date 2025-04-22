@@ -22,12 +22,28 @@ enum class Side {
     threep
 };
 
-std::string _to_dna(
+class StemContent {
+public:
+    size_t max_au;
+    size_t max_gc;
+    size_t max_gu;
+    size_t closing_gc;
+    StemContent(
+        size_t max_au,
+        size_t max_gc,
+        size_t max_gu,
+        size_t closing_gc
+    );
+};
+
+char _complement(const char& base);
+
+std::string _to_dna(const std::string& sequence);
+std::string _to_rna(const std::string& sequence);
+std::string _replace_polybases(
     const std::string& sequence,
     std::mt19937& gen
 );
-
-std::string _to_rna(const std::string& sequence);
 
 std::string _random_sequence(
     size_t length,
@@ -53,11 +69,6 @@ std::string _get_padding(
     size_t max_stem_gu,
     size_t closing_gc,
     std::mt19937& gen
-);
-
-bool _is_hamming_neighbour(
-    const std::string& sequence,
-    const std::unordered_set<std::string>& set
 );
 
 #endif

@@ -1,6 +1,7 @@
 #include "nuc.hpp"
 #include <algorithm>
 #include <cinttypes>
+#include <stdexcept>
 
 //
 // Constants
@@ -51,9 +52,13 @@ enum class _SEQ_SIDE {Five, Three};
 enum class _BP_TYPE {AT, GC, GT, None};
 enum class _PAD_TYPE {Hairpin, Disordered};
 
+
+
 //
 // Helpers
 //
+
+
 
 static inline size_t _sample_from_range(
     size_t low,
@@ -85,11 +90,12 @@ static inline std::string _poly_a(size_t count) {
     return std::string(count, _A);
 }
 
-static inline char _complement(const char& base) {
+char _complement(const char& base) {
     switch (base) {
         case _A: { return _T; }
         case _C: { return _G; }
         case _G: { return _C; }
+        case _U:
         case _T: { return _A; }
         default: {
             throw std::runtime_error("Invalid base \"" + std::string{base} + "\".");
@@ -114,7 +120,7 @@ static inline char _replace_polybase(
     return _sample_from_vector<char>(values, gen);
 }
 
-std::string _to_dna(
+std::string _replace_polybases(
     const std::string& sequence,
     std::mt19937& gen
 ) {
@@ -359,7 +365,9 @@ size_t _get_pad_stem_length(
     );
 }
 
-static inline std::string _get_single_pad(
+typedef std::pair<std::string, _PAD_TYPE> _PAD;
+
+static inline _PAD _get_single_pad(
     size_t length,
     size_t min_stem_length,
     size_t max_stem_length,
@@ -377,7 +385,7 @@ static inline std::string _get_single_pad(
     );
     switch (type) {
         case _PAD_TYPE::Disordered: {
-            return _random_sequence(length, gen);
+            return {_random_sequence(length, gen), _PAD_TYPE::Disordered};
         }
         case _PAD_TYPE::Hairpin: {
             size_t stem_length = _get_pad_stem_length(
@@ -397,7 +405,10 @@ static inline std::string _get_single_pad(
             );
             std::string spacer = _poly_a(spacer_length);
             // The spacer always goes on the 3' end
-            return hairpin + spacer;
+            return {hairpin + spacer, _PAD_TYPE::Hairpin};
+        }
+        default: {
+            throw std::runtime_error("Invalid pad type.");
         }
     }
 }
@@ -425,58 +436,9 @@ std::string _get_padding(
             max_stem_gu,
             closing_gc,
             gen
-        );
+        ).first;
         length -= tmp.length();
         padding += tmp;
     }
     return padding;
-}
-
-
-//
-// Hamming ball of hairpin
-//
-
-static inline char _hamming_complement(const char& base) {
-    // The only point mutations which preserve base-pairing (and therefore could
-    // potentially correspond to another sample from _random_hairpin) are
-    // A -> G
-    // C -> T
-    // G -> A
-    // T -> C
-    switch (base) {
-        case _A: { return _G; }
-        case _C: { return _T; }
-        case _G: { return _A; }
-        case _T: { return _C; }
-        default: {
-            throw std::runtime_error("Invalid base " + std::string{base} + ".");
-        }
-    }
-}
-
-std::vector<std::string> _unit_hamming_ball(
-    const std::string& sequence
-) {
-    std::vector<std::string> results;
-    for (size_t ix = 0; ix < sequence.length(); ix++) {
-        std::string tmp = sequence;
-        tmp[ix] = _hamming_complement(sequence[ix]);
-        results.push_back(tmp);
-    }
-    results.push_back(sequence);
-    return results;
-}
-
-bool _is_hamming_neighbour(
-    const std::string& sequence,
-    const std::unordered_set<std::string>& set
-) {
-    std::vector<std::string> ball = _unit_hamming_ball(sequence);
-    for (const auto& element : ball) {
-        if (set.find(element) != set.end()) {
-            return true;
-        }
-    }
-    return false;
 }

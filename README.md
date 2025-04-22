@@ -1,13 +1,13 @@
 ## Overview
 
-`fld` is a program for **f**ast **l**ibrary **d**esign regrading MaP-seq experiments. It features
-* Easy preprocessing and fast execution
-* Precise control of GC and GU content
-* Robust checks for barcode Hamming distance and, optionally, proper folding
+`fld` is a program for **f**ast **l**ibrary **d**esign regarding MaP-seq experiments. It features
+* Easy preprocessing and fast execution,
+* Precise control of GC and GU content,
+* Robust checks for barcode Hamming distances.
 
 ## Installation
 
-To build, you will need to have `RNAlib2` (the `ViennaRNA` C API) installed on your system. Installation can then be done by simply cloning the repository and running the installation script.
+To build, you will need `cmake`. Installation can be done by simply cloning the repository and running the installation script.
 ```
 git clone https://github.com/hmblair/fld
 cd fld
@@ -25,17 +25,17 @@ name,sublibrary,five_const,five_padding,design,three_padding,barcode,three_const
 ```
 If there are no existing library elements for the input designs, then you only need to fill in the name and design columns. This can be achieved with the `preprocess` subcommand:
 ```
-fld preprocess -o library.csv -s genome_scan designs.fasta
+fld preprocess --output library.csv --sublibrary genome_scan designs.fasta
 ```
-The `-s` flag is optional and fills in the `sublibrary` column of the `.csv`. (If your designs do have existing library elements, you will need to create this `.csv` manually.)
+The `--sublibrary` flag is optional and fills in the `sublibrary` column of the `.csv`. If you have multiple sublibraries, you should `preprocess` them separately and then use a program like `csvstack` to combine them together.
 
-If you have multiple sublibraries, you should preprocess them separately and then use a program like `csvstack` to combine them together.
+If your designs do have existing library elements, you will need to create this `.csv` manually.
 
 ## Library Design
 
 Once the designs are in the proper file, the library elements can be added. A minimal command may look like
 ```
-fld design -o out --pad-to 130 --barcode-stem-length 10 library.csv
+fld design -o out --pad-to 130 --barcode-length 10 library.csv
 ```
 The output file will be `out.csv` with the same columns as the input, but with the appropriate columns filled in. In addition, `out.fasta` and `out.txt` will be generated as well.
 
@@ -61,14 +61,6 @@ All sequences are padded to the length specified by the user. By default, certai
 
 The specifics of these heuristics can be changed via various arguments. If the padding is too short to accomodate a stem, then a random sequence is sampled instead. 
 
-## Folding
-
-Optionally, the sequence with padding can be folded using ViennaRNA, in order to score the choice of padding. The score is a number between 0 and 1, computed from
-1. The probability that a stem base forms a base pair with its appropriate complement, and
-2. The probability that a loop base is unpaired.
-
-In general, the padding heuristics are enough to ensure that this score is above 0.95, and as computing the score is very costly, it is off by default (and not actually implemented yet anyway).
-
 ## Barcoding
 
 The same heuristics for padding are used to generate random barcodes for each sequence. An additional check is performed to guarantee that all barcodes have a Hamming distance of at least 2, to reduce the chance of a mutation in the barcode causing a mis-identification. This value (2) is fixed for now.
@@ -76,3 +68,31 @@ The same heuristics for padding are used to generate random barcodes for each se
 ## Primerizing
 
 The appropriate 5' and 3' constant regions are appended to the sequence.
+
+# Utilities
+
+## Inspect
+
+The command
+```
+fld inspect [--sort] file
+```
+will list the length of all sequences in the given .fasta file. This can be useful when preprocessing as a sanity check. `--sort` will sort the results by count rather than sequence length.
+
+## M2
+
+Files for M2-seq can be generated with the command
+```
+fld m2 --output output.fasta [--all] [--overwrite] input.fasta
+```
+The `--all` flag specifies that all three mutants should be computed, rather than the default of computing complements only.
+
+WARNING: m2 complements both U and T to A, but only complements A to T, so if the input is RNA then the output will contain both RNA and DNA.
+
+## Barcodes
+
+A set of unique barcodes of a given length can be generated with the command
+```
+fld barcodes --count N --length L --output barcodes.txt
+```
+The same options that are available to `design` (`--max-ac`, `--max-gc`, ...) are also available here. The same Hamming distance checks are also performed.
