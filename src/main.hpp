@@ -7,6 +7,7 @@
 #include "inspect.hpp"
 #include "barcodes.hpp"
 #include "m2.hpp"
+#include "random.hpp"
 
 const auto PROGRAM = "fld";
 const auto VERSION = "0.2.0";
@@ -16,7 +17,8 @@ enum class MODE {
     Preprocess,
     Inspect,
     Barcodes,
-    M2
+    M2,
+    Random
 };
 
 class SuperProgram {
@@ -28,6 +30,7 @@ public:
     InspectArgs inspect;
     BarcodesArgs barcodes;
     M2Args m2;
+    RandomArgs random;
 
     SuperProgram();
     void parse(int argc, char** argv);
@@ -36,6 +39,7 @@ public:
     bool is_inspect() const;
     bool is_barcodes() const;
     bool is_m2() const;
+    bool is_random() const;
     MODE mode() const;
 };
 

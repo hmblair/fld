@@ -38,6 +38,7 @@ add_executable(${PROJECT_NAME}
     src/inspect.cpp
     src/barcodes.cpp
     src/m2.cpp
+    src/random.cpp
 )
 
 # Link libraries
