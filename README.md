@@ -25,7 +25,7 @@ name,sublibrary,five_const,five_padding,design,three_padding,barcode,three_const
 ```
 If there are no existing library elements for the input designs, then you only need to fill in the name and design columns. This can be achieved with the `preprocess` subcommand:
 ```
-fld preprocess --output library.csv --sublibrary genome_scan designs.fasta
+fld preprocess --output library.csv [--sublibrary S] designs.fasta
 ```
 The `--sublibrary` flag is optional and fills in the `sublibrary` column of the `.csv`. If you have multiple sublibraries, you should `preprocess` them separately and then use a program like `csvstack` to combine them together.
 
@@ -87,7 +87,7 @@ fld m2 --output output.fasta [--all] [--overwrite] input.fasta
 ```
 The `--all` flag specifies that all three mutants should be computed, rather than the default of computing complements only.
 
-WARNING: m2 complements both U and T to A, but only complements A to T, so if the input is RNA then the output will contain both RNA and DNA.
+WARNING: `fld m2` complements both U and T to A, but only complements A to T, so if the input is RNA then the output will contain both RNA and DNA.
 
 ## Barcodes
 
@@ -95,4 +95,12 @@ A set of unique barcodes of a given length can be generated with the command
 ```
 fld barcodes --count N --length L --output barcodes.txt
 ```
-The same options that are available to `design` (`--max-ac`, `--max-gc`, ...) are also available here. The same Hamming distance checks are also performed.
+The same options that are available to `design` (`--max-au`, `--max-gc`, ...) are also available here. The same Hamming distance checks are also performed.
+
+## Random
+
+A random file of sequences of a given length can be generated with the command
+```
+fld random --count N --length L --output barcodes.txt [--fasta]
+```
+The `--fasta` flag will output the sequences in FASTA format with names `random_*` instead.
