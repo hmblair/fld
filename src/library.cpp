@@ -162,7 +162,7 @@ std::string Construct::str() const {
 }
 
 std::string Construct::csv_record() const {
-    return (
+    return  _escape_with_quotes(
         _name + "," +
         _sublibrary + "," +
         _fivep_const + "," +
