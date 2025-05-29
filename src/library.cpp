@@ -1,4 +1,5 @@
 #include "library.hpp"
+#include "utils.hpp"
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -162,9 +163,9 @@ std::string Construct::str() const {
 }
 
 std::string Construct::csv_record() const {
-    return  _escape_with_quotes(
-        _name + "," +
-        _sublibrary + "," +
+    return(
+        _escape_with_quotes(_name) + "," +
+        _escape_with_quotes(_sublibrary) + "," +
         _fivep_const + "," +
         _fivep_padding + "," +
         _design + "," +
