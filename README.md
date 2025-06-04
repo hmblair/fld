@@ -104,3 +104,11 @@ A random file of sequences of a given length can be generated with the command
 fld random --count N --length L --output barcodes.txt [--fasta]
 ```
 The `--fasta` flag will output the sequences in FASTA format with names `random_*` instead.
+
+## Duplicate
+
+The sequences in a FASTA file can be duplicated N times with the command
+```
+fld duplicate --count N --output duplicates.fasta input.fasta
+```
+The FASTA records will have "_x" appeneded to them for x from 0 to N-1.
