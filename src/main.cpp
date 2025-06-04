@@ -7,6 +7,7 @@ SuperProgram::SuperProgram() : _parent(PROGRAM, VERSION) {
     _parent.add_subparser(barcodes._parser);
     _parent.add_subparser(m2._parser);
     _parent.add_subparser(random._parser);
+    _parent.add_subparser(duplicate._parser);
 };
 
 void SuperProgram::parse(int argc, char** argv) {
@@ -37,6 +38,10 @@ bool SuperProgram::is_random() const {
     return random.used(_parent);
 }
 
+bool SuperProgram::is_duplicate() const {
+    return duplicate.used(_parent);
+}
+
 MODE SuperProgram::mode() const {
     if (is_design()) {
         return MODE::Design;
@@ -50,6 +55,8 @@ MODE SuperProgram::mode() const {
         return MODE::M2;
     } else if (is_random()) {
         return MODE::Random;
+    } else if (is_duplicate()) {
+        return MODE::Duplicate;
     } else {
         throw std::runtime_error("Unknown subcommand.");
     }
@@ -145,6 +152,17 @@ int main(int argc, char** argv) {
                     opt.count,
                     opt.length,
                     opt.fasta
+                );
+                break;
+            }
+
+            case MODE::Duplicate: {
+                DuplicateArgs& opt = parent.duplicate;
+                _duplicate(
+                    opt.input,
+                    opt.output,
+                    opt.overwrite,
+                    opt.count
                 );
                 break;
             }

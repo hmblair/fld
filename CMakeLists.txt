@@ -39,6 +39,7 @@ add_executable(${PROJECT_NAME}
     src/barcodes.cpp
     src/m2.cpp
     src/random.cpp
+    src/duplicate.cpp
 )
 
 # Link libraries
