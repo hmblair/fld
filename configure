@@ -1,12 +1,34 @@
 #!/bin/bash
 
-# export LD_LIBRARY_PATH="/usr/local/lib"
+set -eo pipefail
 
-rm -rf bin
-mkdir build
-cd build
-cmake -DCMAKE_INSTALL_PREFIX=../ ..
+command -v make >/dev/null 2>&1 || { echo >&2 "Make is required but is not installed. Exiting."; exit 1; }
+command -v cmake >/dev/null 2>&1 || { echo >&2 "CMake is required but is not installed. Exiting."; exit 1; }
+
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+BUILD_DIR=${SCRIPT_DIR}/build
+BIN_DIR=${SCRIPT_DIR}/bin
+
+# Clean and create build directory
+
+rm -rf ${BIN_DIR}
+mkdir -p ${BUILD_DIR} ${BIN_DIR}
+
+pushd ${BUILD_DIR} > /dev/null
+
+# Run cmake with appropriate options
+
+CMAKE_OPTIONS="-DCMAKE_INSTALL_PREFIX=${SCRIPT_DIR}"
+cmake ${CMAKE_OPTIONS} ..
+
+# Build and install project
+
 make
 make install
-cd ..
-rm -rf build
+
+popd > /dev/null
+
+# Post-install steps
+
+ln -sf ${SCRIPT_DIR}/src/fld-all ${BIN_DIR}/fld-all
+ln -sf ${SCRIPT_DIR}/src/fld-merge ${BIN_DIR}/fld-merge
