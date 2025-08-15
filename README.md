@@ -83,7 +83,7 @@ The following lists all additional commands available:
 
 `--five-const`: The 5' constant sequence. Default: ACTCGAGTAGAGTCGAAAA
 
-`--five-const`: The 3' constant sequence. Default: AAAAGAAACAACAACAACAAC
+`--three-const`: The 3' constant sequence. Default: AAAAGAAACAACAACAACAAC
 
 `--min-stem-length`: The minimum length of the stem of a hairpin. Default: 7
 
