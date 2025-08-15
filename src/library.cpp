@@ -735,11 +735,11 @@ static inline int _MAX_STEM_LENGTH_DEFAULT = 9;
 static inline std::string _MAX_STEM_LENGTH_HELP = "The maximum length of the stem of a hairpin.";
 
 static inline std::string _MAX_AU_NAME = "--max-au";
-static inline int _MAX_AU_DEFAULT = 13;
+static inline int _MAX_AU_DEFAULT = INT_MAX;
 static inline std::string _MAX_AU_HELP = "The maximum AU content of any stem.";
 
 static inline std::string _MAX_GC_NAME = "--max-gc";
-static inline int _MAX_GC_DEFAULT = 13;
+static inline int _MAX_GC_DEFAULT = 5;
 static inline std::string _MAX_GC_HELP = "The maximum GC content of any stem.";
 
 static inline std::string _MAX_GU_NAME = "--max-gu";
