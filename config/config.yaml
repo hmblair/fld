@@ -1,0 +1,13 @@
+model:
+  name: rn-coverage
+
+trainer:
+  devices: 1
+  callbacks:
+    - path: reads
+
+data:
+  paths:
+    predict:
+      - library_t.nc
+      - barcodes_t.nc
