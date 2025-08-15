@@ -1,7 +1,7 @@
 #!/bin/bash
 
-if [[ $# -ne 2 ]]; then
-    echo "Usage: fld-all INPUT-DIR OUTPUT-DIR"
+if [[ $# -ne 3 ]]; then
+    echo "Usage: fld-all INPUT-DIR OUTPUT-DIR CONFIG"
     exit 1
 fi
 
@@ -11,6 +11,10 @@ PARENT=$(dirname "$DIR")
 FASTAS=$(readlink -f "$1")
 OUT="$2"
 TMP="$OUT/tmp"
+
+CONFIG="$3"
+FLD_PAD_ARGS=$(sed -n "1p" $CONFIG)
+FLD_BCD_ARGS=$(sed -n "2p" $CONFIG)
 
 if [[ -d $OUT ]]; then
     echo "The directory '$OUT' already exists."
@@ -49,7 +53,7 @@ echo
 
 # Add padding but no barcodes
 
-fld design --pad-to 20 -o "library" --max-gc 5 --max-gu 1 "preprocessed.csv"
+fld design $FLD_PAD_ARGS -o "library" "preprocessed.csv"
 
 echo
 echo "----- Generating barcodes -----"
@@ -57,7 +61,7 @@ echo
 
 # Generate barcodes
 
-fld barcodes --count $(wc -l < library.txt) --length 8 --output barcodes.txt --max-gc 5 --max-gu 1
+fld barcodes $FLD_BCD_ARGS --count $(wc -l < library.txt) --output barcodes.txt
 
 echo
 echo "----- Predicting reads -----"
