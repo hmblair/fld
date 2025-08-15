@@ -1,4 +1,4 @@
 #!/bin/bash
 
 rm -rf out
-fld-all data out config
+fld-all data output config
