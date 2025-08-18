@@ -32,3 +32,4 @@ popd > /dev/null
 
 ln -sf ${SCRIPT_DIR}/src/fld-all ${BIN_DIR}/fld-all
 ln -sf ${SCRIPT_DIR}/src/fld-merge ${BIN_DIR}/fld-merge
+ln -sf ${SCRIPT_DIR}/src/fld-pad ${BIN_DIR}/fld-pad
