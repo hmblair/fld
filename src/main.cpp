@@ -9,7 +9,6 @@ SuperProgram::SuperProgram() : _parent(PROGRAM, VERSION) {
     _parent.add_subparser(random._parser);
     _parent.add_subparser(duplicate._parser);
 };
-
 void SuperProgram::parse(int argc, char** argv) {
     _parent.parse_args(argc, argv);
 }
@@ -80,7 +79,7 @@ int main(int argc, char** argv) {
             case MODE::Inspect: {
                 InspectArgs& opt = parent.inspect;
                 _inspect(
-                    opt.file,
+                    opt.files,
                     opt.sort
                 );
                 break;

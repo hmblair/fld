@@ -1,0 +1,53 @@
+#!/bin/bash
+
+set -eo pipefail
+
+if [[ $# -ne 3 ]]; then
+    echo "Usage: fld-pad INPUT-DIR OUTPUT-DIR CONFIG"
+    exit 1
+fi
+
+DIR="$(dirname "$0")"
+PARENT=$(dirname "$DIR")
+
+FASTAS=$(readlink -f "$1")
+OUT="$2"
+TMP="$OUT/tmp"
+
+CONFIG="$3"
+FLD_ARGS=$(sed -n "1p" $CONFIG)
+
+if [[ -d $OUT ]]; then
+    echo "The directory '$OUT' already exists."
+    exit 1
+fi
+
+# Preprocess the FASTA files for fld
+
+shopt -s nullglob
+files=("$FASTAS"/*.fasta)
+
+if [[ ${#files[@]} -eq 0 ]]; then
+    echo "No FASTA files found in $FASTAS."
+    exit 1
+fi
+
+mkdir -p $TMP
+cd $TMP
+
+for file in "${files[@]}"; do
+    base=$(basename "$file" .fasta)
+    echo "Preprocessing $base..."
+    fld preprocess --output "$base.csv" --sublibrary $base $file
+done
+
+# Stack the preprocessed CSV files
+
+echo "Stacking..."
+csvstack *.csv > "preprocessed.csv"
+
+# Add padding but no barcodes
+
+echo "Padding..."
+fld design $FLD_ARGS -o "library" "preprocessed.csv"
+

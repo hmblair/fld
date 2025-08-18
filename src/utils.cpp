@@ -208,6 +208,31 @@ void _init_parser<std::string>(
         .help(help);
 }
 
+template<>
+void _init_parser<std::vector<std::string>>(
+    Parser& parser,
+    const std::string& name,
+    const std::string& help
+) {
+    parser.add_argument(name)
+        .remaining()
+        .required()
+        .help(help);
+}
+
+template<>
+void _init_parser<std::vector<std::string>>(
+    Parser& parser,
+    const std::string& name,
+    const std::string& help,
+    std::vector<std::string> default_value
+) {
+    parser.add_argument(name)
+        .remaining()
+        .default_value(default_value)
+        .help(help);
+}
+
 template <typename T>
 Arg<T>::Arg (
     Parser& parser,
@@ -240,6 +265,7 @@ Arg<T>::operator T() const {
 template class Arg<int>;
 template class Arg<bool>;
 template class Arg<std::string>;
+template class Arg<std::vector<std::string>>;
 
 Program::Program(std::string name) : _name(name), _parser(name) {};
 

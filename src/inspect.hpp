@@ -8,11 +8,11 @@
 class InspectArgs : public Program {
 private:
 public:
-    Arg<std::string> file;
+    Arg<std::vector<std::string>> files;
     Arg<bool> sort;
     InspectArgs();
 };
 
-void _inspect(const std::string& filename, bool sort);
+void _inspect(const std::vector<std::string>& filename, bool sort);
 
 #endif

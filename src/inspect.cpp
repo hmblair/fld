@@ -3,39 +3,45 @@
 
 static inline std::string _PARSER_NAME = "inspect";
 // File
-static inline std::string _FILE_NAME = "file";
-static inline std::string _FILE_HELP = "The input .fasta file.";
+static inline std::string _FILES_NAME = "files";
+static inline std::string _FILES_HELP = "The input .fasta file or files.";
 // Sort
 static inline std::string _SORT_NAME = "--sort";
 static inline std::string _SORT_HELP = "Sort the output sequences by count rather than length.";
 
 InspectArgs::InspectArgs() :
     Program(_PARSER_NAME),
-    file(_parser, _FILE_NAME, _FILE_HELP),
+    files(_parser, _FILES_NAME, _FILES_HELP),
     sort(_parser, _SORT_NAME, _SORT_HELP) {
 
 }
 
-static inline std::unordered_map<size_t, size_t> _get_length_counts(const std::string& filename) {
-    _throw_if_not_exists(filename);
-    std::ifstream file(filename);
-    std::string line;
+static inline std::unordered_map<size_t, size_t> _get_length_counts(const std::vector<std::string>& names) {
 
     std::unordered_map<size_t, size_t> counts;
     size_t curr_length = 0;
+    std::string line;
 
-    while (std::getline(file, line)) {
-        if (_is_fasta_header(line)) {
-            if (curr_length > 0) {
-                counts[curr_length]++;
-                curr_length = 0;
+    for (const auto& name: names) {
+
+        _throw_if_not_exists(name);
+        std::ifstream file(name);
+
+        while (std::getline(file, line)) {
+            if (_is_fasta_header(line)) {
+                if (curr_length > 0) {
+                    counts[curr_length]++;
+                    curr_length = 0;
+                }
+            } else {
+                curr_length += line.length();
             }
-        } else {
-            curr_length += line.length();
         }
-    }
-    if (curr_length > 0) {
-        counts[curr_length]++;
+
+        if (curr_length > 0) {
+            counts[curr_length]++;
+        }
+
     }
 
     return counts;
@@ -123,7 +129,7 @@ static inline void _print_length_counts(const std::unordered_map<size_t, size_t>
     std::cout << "\n";
 }
 
-void _inspect(const std::string& filename, bool sort) {
-    std::unordered_map<size_t, size_t> counts = _get_length_counts(filename);
+void _inspect(const std::vector<std::string>& files, bool sort) {
+    std::unordered_map<size_t, size_t> counts = _get_length_counts(files);
     _print_length_counts(counts, sort);
 }
