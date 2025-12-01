@@ -143,6 +143,10 @@ private:
 
 };
 
+
+Library _from_csv(const std::string& filename);
+
+
 void _design(
     const std::string& file,
     const std::string& output,

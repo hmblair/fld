@@ -665,13 +665,15 @@ void _design(
 ) {
 
     // Remove any existing output files
-    _remove_if_exists_all(
-        output,
-        overwrite
-    );
+
+    _remove_if_exists_all(output, overwrite);
+
     // Load the library from the provided .csv
+
     Library library = _from_csv(file);
+
     // Add all desired library elements
+
     _add_library_elements(
        library,
        pad,
@@ -686,7 +688,9 @@ void _design(
        five_const,
        three_const
     );
+
     // Save to disk
+
     library.save(output);
 
 }

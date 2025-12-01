@@ -43,6 +43,7 @@ add_executable(${PROJECT_NAME}
     src/m2.cpp
     src/random.cpp
     src/duplicate.cpp
+    src/totxt.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE

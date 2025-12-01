@@ -16,6 +16,11 @@ parser.add_argument(
     help='The `nc` file containing the library construct read counts.',
     required=True,
 )
+parser.add_argument(
+    '--output',
+    help='The output prefix.',
+    default="library",
+)
 
 
 def _save_library(library, out_csv_file, out_fasta_file, out_txt_file) -> None:
@@ -60,88 +65,39 @@ def _save_library(library, out_csv_file, out_fasta_file, out_txt_file) -> None:
 # Input and output files
 #
 
+args = parser.parse_args()
 
-IN = sys.argv[1]
-OUT = sys.argv[2]
-
-library_file = f"{IN}/library.csv"
-library_reads_file = f"{IN}/reads/library_t.nc"
-
-barcodes_file = f"{IN}/barcodes.txt"
-barcodes_reads_file = f"{IN}/reads/barcodes_t.nc"
-
-out_csv_file = f"{OUT}.csv"
-out_fasta_file = f"{OUT}.fasta"
-out_txt_file = f"{OUT}.txt"
-
+out_csv_file = f"{args.output}.csv"
+out_fasta_file = f"{args.output}.fasta"
+out_txt_file = f"{args.output}.txt"
 
 #
 # Loading
 #
 
-
-library = pd.read_csv(library_file, keep_default_na=False)
+library = pd.read_csv(args.csv, keep_default_na=False)
 
 # Get the predicted reads for the library constructs
 # We take the mean of the 2A3 and DMS reads
 
 n = len(library)
 library_reads = np.zeros(n, dtype=float)
-library_reads_arr = xr.load_dataset(library_reads_file)['reads'].values.mean(1)
+library_reads_arr = xr.load_dataset(args.reads)['reads'].values.mean(1)
 
 m = library_reads_arr.shape[0]
 library_reads[:m] = library_reads_arr
-
-# Load the barcodes
-
-barcodes = []
-with open(barcodes_file, "r") as f:
-    for line in f:
-        barcodes.append(line.strip())
-
-# Get the predicted reads for the barcodes
-# We take the mean of the 2A3 and DMS reads
-
-n = len(barcodes)
-barcodes_reads = np.zeros(n, dtype=float)
-barcodes_reads_arr = xr.load_dataset(barcodes_reads_file)['reads'].values.mean(1)
-m = barcodes_reads_arr.shape[0]
-barcodes_reads[:m] = barcodes_reads_arr
+library['reads'] = library_reads_arr
 
 #
 # Sorting
 #
 
-ix_library = np.argsort(library_reads)
-library = library.iloc[ix_library]
-
-# Reverse sort the barcodes by the predicted reads
-
-ix_barcodes = np.flip(np.argsort(barcodes_reads))
-_barcodes = [barcodes[jx] for jx in ix_barcodes]
-barcodes = _barcodes
-
-
-#
-# Merging
-#
-
-
-# Insert the barcodes into the library
-
-library["barcode"] = barcodes
-library["design_reads"] = library_reads[ix_library]
-library["barcode_reads"] = [barcodes_reads[jx] for jx in ix_barcodes]
-library["total_reads"] = library["design_reads"] + library["barcode_reads"]
-
-# Sort the merged library by total reads in descending order
-
-library = library.sort_values(by="total_reads", ascending=True)
-
+ix = np.argsort(library_reads)
+library['index'] = ix
+library = library.iloc[ix]
 
 #
 # Saving
 #
-
 
 _save_library(library, out_csv_file, out_fasta_file, out_txt_file)

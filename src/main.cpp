@@ -8,6 +8,7 @@ SuperProgram::SuperProgram() : _parent(PROGRAM, VERSION) {
     _parent.add_subparser(m2._parser);
     _parent.add_subparser(random._parser);
     _parent.add_subparser(duplicate._parser);
+    _parent.add_subparser(txt._parser);
 };
 void SuperProgram::parse(int argc, char** argv) {
     _parent.parse_args(argc, argv);
@@ -41,6 +42,10 @@ bool SuperProgram::is_duplicate() const {
     return duplicate.used(_parent);
 }
 
+bool SuperProgram::is_txt() const {
+    return txt.used(_parent);
+}
+
 MODE SuperProgram::mode() const {
     if (is_design()) {
         return MODE::Design;
@@ -56,6 +61,8 @@ MODE SuperProgram::mode() const {
         return MODE::Random;
     } else if (is_duplicate()) {
         return MODE::Duplicate;
+    } else if (is_txt()) {
+        return MODE::TXT;
     } else {
         throw std::runtime_error("Unknown subcommand.");
     }
@@ -162,6 +169,16 @@ int main(int argc, char** argv) {
                     opt.output,
                     opt.overwrite,
                     opt.count
+                );
+                break;
+            }
+
+            case MODE::TXT: {
+                txtArgs& opt = parent.txt;
+                _to_txt(
+                    opt.file,
+                    opt.output,
+                    opt.overwrite
                 );
                 break;
             }
