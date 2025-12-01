@@ -9,6 +9,7 @@ SuperProgram::SuperProgram() : _parent(PROGRAM, VERSION) {
     _parent.add_subparser(random._parser);
     _parent.add_subparser(duplicate._parser);
     _parent.add_subparser(txt._parser);
+    _parent.add_subparser(test._parser);
 };
 void SuperProgram::parse(int argc, char** argv) {
     _parent.parse_args(argc, argv);
@@ -46,6 +47,10 @@ bool SuperProgram::is_txt() const {
     return txt.used(_parent);
 }
 
+bool SuperProgram::is_test() const {
+    return test.used(_parent);
+}
+
 MODE SuperProgram::mode() const {
     if (is_design()) {
         return MODE::Design;
@@ -63,6 +68,8 @@ MODE SuperProgram::mode() const {
         return MODE::Duplicate;
     } else if (is_txt()) {
         return MODE::TXT;
+    } else if (is_test()) {
+        return MODE::Test;
     } else {
         throw std::runtime_error("Unknown subcommand.");
     }
@@ -105,36 +112,41 @@ int main(int argc, char** argv) {
 
             case MODE::Design: {
                 DesignArgs& opt = parent.design;
-                _design(
-                    opt.file,
-                    opt.output,
-                    opt.overwrite,
-                    opt.pad_to,
-                    opt.barcode_length,
-                    opt.min_stem_length,
-                    opt.max_stem_length,
-                    opt.max_au,
-                    opt.max_gc,
-                    opt.max_gu,
-                    opt.closing_gc,
-                    opt.spacer,
-                    opt.five_const,
-                    opt.three_const
-                );
+                DesignConfig config;
+                config.input_path = opt.file;
+                config.output_prefix = opt.output;
+                config.overwrite = opt.overwrite;
+                config.pad_to_length = opt.pad_to;
+                config.five_const = opt.five_const;
+                config.three_const = opt.three_const;
+                // Stem config for padding
+                config.stem.min_length = opt.min_stem_length;
+                config.stem.max_length = opt.max_stem_length;
+                config.stem.max_au = opt.max_au;
+                config.stem.max_gc = opt.max_gc;
+                config.stem.max_gu = opt.max_gu;
+                config.stem.closing_gc = opt.closing_gc;
+                config.stem.spacer_length = opt.spacer;
+                // Barcode config
+                config.barcode.stem_length = opt.barcode_length;
+                config.barcode.stem = config.stem;  // Use same stem config for barcodes
+                _design(config);
                 break;
             }
 
             case MODE::Barcodes: {
                 BarcodesArgs& opt = parent.barcodes;
+                StemConfig config;
+                config.max_au = opt.max_au;
+                config.max_gc = opt.max_gc;
+                config.max_gu = opt.max_gu;
+                config.closing_gc = opt.closing_gc;
                 _barcodes(
                     opt.count,
                     opt.output,
                     opt.overwrite,
                     opt.stem_length,
-                    opt.max_au,
-                    opt.max_gc,
-                    opt.max_gu,
-                    opt.closing_gc
+                    config
                 );
                 break;
             }
@@ -181,6 +193,10 @@ int main(int argc, char** argv) {
                     opt.overwrite
                 );
                 break;
+            }
+
+            case MODE::Test: {
+                return _run_tests(argv[0]);
             }
 
         }

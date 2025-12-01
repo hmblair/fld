@@ -1,4 +1,5 @@
 #include "preprocess.hpp"
+#include "io/csv_format.hpp"
 
 static inline std::string _PARSER_NAME = "preprocess";
 // File
@@ -24,27 +25,6 @@ PreprocessArgs::PreprocessArgs() :
 
 }
 
-static inline const std::vector<std::string> _csv_columns = {
-    "name",
-    "sublibrary",
-    "five_const",
-    "five_padding",
-    "design",
-    "three_padding",
-    "barcode",
-    "three_const"
-};
-
-static inline std::string _csv_header() {
-    std::string header;
-    for (size_t ix = 0; ix < _csv_columns.size() - 1; ix++) {
-        header += _csv_columns[ix];
-        header += ",";
-    }
-    header += _csv_columns[_csv_columns.size() - 1];
-    return header;
-}
-
 void _preprocess(
     const std::string& fasta,
     const std::string& csv,
@@ -63,7 +43,7 @@ void _preprocess(
     std::string sequence;
     bool write = false;
 
-    csv_file << _csv_header() << "\n";
+    csv_file << csv::header() << "\n";
     while (std::getline(fasta_file, line)) {
         if (_is_fasta_header(line)) {
             if (write) {

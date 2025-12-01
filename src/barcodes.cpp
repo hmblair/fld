@@ -1,7 +1,6 @@
 #include "barcodes.hpp"
 #include <climits>
 #include <machine/limits.h>
-using namespace indicators;
 
 
 //
@@ -124,11 +123,12 @@ static inline size_t _accumulate(
 
 static inline size_t _stem_counts(
     size_t length,
-    size_t max_au,
-    size_t max_gc,
-    size_t max_gu,
-    size_t closing_gc
+    const StemConfig& config
 ) {
+    size_t max_au = std::min(config.max_au, length);
+    size_t max_gc = std::min(config.max_gc, length);
+    size_t max_gu = std::min(config.max_gu, length);
+    size_t closing_gc = config.closing_gc;
 
     // Adjust for closing GC base pairs
     max_gc -= closing_gc;
@@ -149,55 +149,34 @@ static inline size_t _stem_counts(
 static inline void _check_if_enough_barcodes(
     size_t count,
     size_t stem_length,
-    size_t max_au,
-    size_t max_gc,
-    size_t max_gu,
-    size_t closing_gc
+    const StemConfig& config
 ) {
-
-    max_au = std::min(max_au, stem_length);
-    max_gc = std::min(max_gc, stem_length);
-    max_gu = std::min(max_gu, stem_length);
-
-    size_t _counts = _stem_counts(
-        stem_length,
-        max_au,
-        max_gc,
-        max_gu,
-        closing_gc
-    );
+    size_t _counts = _stem_counts(stem_length, config);
     if (_counts < count) {
-        throw std::runtime_error("The barcode length (" + std::to_string(stem_length) + ") and maximum base-pair counts (" + std::to_string(max_au) + ", " + std::to_string(max_gc) + " and " + std::to_string(max_gu) + ") are only large enough to accomodate " + std::to_string(_counts) + " of the required " + std::to_string(count) + " unique barcodes.");
+        throw std::runtime_error(
+            "The barcode length (" + std::to_string(stem_length) +
+            ") and maximum base-pair counts (" + std::to_string(config.max_au) +
+            ", " + std::to_string(config.max_gc) + " and " + std::to_string(config.max_gu) +
+            ") are only large enough to accomodate " + std::to_string(_counts) +
+            " of the required " + std::to_string(count) + " unique barcodes."
+        );
     }
-
 }
 
 std::string _random_barcode(
     size_t stem_length,
+    const StemConfig& config,
     std::mt19937 &gen,
-    size_t max_au,
-    size_t max_gc,
-    size_t max_gu,
-    size_t closing_gc,
     const std::unordered_set<std::string>& existing
 ) {
-
     std::string barcode;
 
     do {
-        barcode = _random_hairpin(
-            stem_length,
-            gen,
-            max_au,
-            max_gc,
-            max_gu,
-            closing_gc
-        );
+        barcode = _random_hairpin(stem_length, config, gen);
     }
     while (_has_hamming_neighbour(barcode, existing));
 
     return barcode;
-
 }
 
 bool _insert_if_not_neighbour(
@@ -214,49 +193,18 @@ bool _insert_if_not_neighbour(
 void _get_barcodes(
     size_t count,
     size_t stem_length,
+    const StemConfig& config,
     std::mt19937 &gen,
-    size_t max_au,
-    size_t max_gc,
-    size_t max_gu,
-    size_t closing_gc,
     std::unordered_set<std::string>& barcodes
 ) {
+    _check_if_enough_barcodes(count, stem_length, config);
 
-    _check_if_enough_barcodes(
-        count,
-        stem_length,
-        max_au,
-        max_gc,
-        max_gu,
-        closing_gc
-    );
-
-    BlockProgressBar bar{
-        option::BarWidth{30},
-        option::Start{"["},
-        option::End{"]"},
-        option::PrefixText{"Barcoding "},
-        option::ForegroundColor{Color::white}  ,
-        option::FontStyles{std::vector<FontStyle>{FontStyle::bold}}
-    };
-
-    size_t curr = 0;
+    ProgressBar bar("Barcoding ");
     for (size_t ix = 0; ix < count; ix++) {
-        std::string barcode = _random_barcode(
-            stem_length,
-            gen,
-            max_au,
-            max_gc,
-            max_gu,
-            closing_gc,
-            barcodes
-        );
+        std::string barcode = _random_barcode(stem_length, config, gen, barcodes);
         barcodes.insert(barcode);
-
-        curr++;
-        bar.set_progress( (curr * 100) / count);
+        bar.update(ix + 1, count);
     }
-
 }
 
 void _barcodes(
@@ -264,32 +212,18 @@ void _barcodes(
     const std::string& output,
     bool overwrite,
     size_t stem_length,
-    size_t max_au,
-    size_t max_gc,
-    size_t max_gu,
-    size_t closing_gc
+    const StemConfig& config
 ) {
-
     _remove_if_exists(output, overwrite);
 
     std::mt19937 gen = _init_gen();
     std::unordered_set<std::string> barcodes;
-    _get_barcodes(
-        count,
-        stem_length,
-        gen,
-        max_au,
-        max_gc,
-        max_gu,
-        closing_gc,
-        barcodes
-    );
+    _get_barcodes(count, stem_length, config, gen, barcodes);
 
     std::ofstream file(output);
     for (const std::string& barcode : barcodes) {
         file << barcode << "\n";
     }
-
 }
 
 

@@ -1,18 +1,9 @@
 #include "utils.hpp"
+#include "io/writers.hpp"
 
 std::mt19937 _init_gen() {
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
     return std::mt19937(seed);
-}
-
-std::string _csv_name(const std::string& prefix) {
-    return prefix + ".csv";
-}
-std::string _fasta_name(const std::string& prefix) {
-    return prefix + ".fasta";
-}
-std::string _txt_name(const std::string& prefix) {
-    return prefix + ".txt";
 }
 
 void _throw_if_not_exists(const std::string& filename) {
@@ -48,9 +39,9 @@ void _remove_if_exists_all(
     const std::string& prefix,
     bool overwrite
 ) {
-    _remove_if_exists(_csv_name(prefix), overwrite);
-    _remove_if_exists(_fasta_name(prefix), overwrite);
-    _remove_if_exists(_txt_name(prefix), overwrite);
+    _remove_if_exists(output_csv(prefix), overwrite);
+    _remove_if_exists(output_fasta(prefix), overwrite);
+    _remove_if_exists(output_txt(prefix), overwrite);
 }
 
 std::vector<std::string> _split_by_delimiter(const std::string& s, char delimiter) {

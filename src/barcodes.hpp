@@ -3,9 +3,9 @@
 
 #include "nuc.hpp"
 #include "utils.hpp"
+#include "io/progress.hpp"
 #include <fstream>
 #include <unordered_set>
-#include <indicators/block_progress_bar.hpp>
 
 
 
@@ -18,11 +18,8 @@
 
 std::string _random_barcode(
     size_t stem_length,
+    const StemConfig& config,
     std::mt19937 &gen,
-    size_t max_au,
-    size_t max_gc,
-    size_t max_gu,
-    size_t closing_gc,
     const std::unordered_set<std::string>& existing
 );
 
@@ -51,11 +48,8 @@ bool _insert_if_not_neighbour(
 void _get_barcodes(
     size_t count,
     size_t stem_length,
+    const StemConfig& config,
     std::mt19937 &gen,
-    size_t max_au,
-    size_t max_gc,
-    size_t max_gu,
-    size_t closing_gc,
     std::unordered_set<std::string>& barcodes
 );
 
@@ -72,10 +66,7 @@ void _barcodes(
     const std::string& output,
     bool overwrite,
     size_t stem_length,
-    size_t max_stem_au,
-    size_t max_stem_gc,
-    size_t max_stem_gu,
-    size_t closing_gc
+    const StemConfig& config
 );
 
 

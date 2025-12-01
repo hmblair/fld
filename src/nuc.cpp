@@ -303,27 +303,29 @@ static inline void _update_counts(
 }
 
 std::string _random_hairpin(
-    size_t length,
-    std::mt19937& gen,
-    size_t max_stem_au,
-    size_t max_stem_gc,
-    size_t max_stem_gu,
-    size_t closing_gc
+    size_t stem_length,
+    const StemConfig& config,
+    std::mt19937& gen
 ) {
-    std::vector<_BP> pairs(length);
+    size_t max_au = config.max_au;
+    size_t max_gc = config.max_gc;
+    size_t max_gu = config.max_gu;
+    size_t closing_gc = config.closing_gc;
+
+    std::vector<_BP> pairs(stem_length);
     for (size_t ix = 0; ix < closing_gc; ix++) {
         pairs[ix] = _random_base_pair(gen, false, true, false);
-        max_stem_gc--;
+        max_gc--;
     }
-    for (size_t ix = closing_gc; ix < length; ix++) {
+    for (size_t ix = closing_gc; ix < stem_length; ix++) {
         _BP pair = _random_base_pair(
             gen,
-            max_stem_au > 0,
-            max_stem_gc > 0,
-            max_stem_gu > 0
+            max_au > 0,
+            max_gc > 0,
+            max_gu > 0
         );
         pairs[ix] = pair;
-        _update_counts(pair, max_stem_au, max_stem_gc, max_stem_gu);
+        _update_counts(pair, max_au, max_gc, max_gu);
     }
     std::shuffle(pairs.begin() + closing_gc, pairs.end(), gen);
     std::string loop = _random_tetraloop(gen);
@@ -336,30 +338,27 @@ std::string _random_hairpin(
 
 _PAD_TYPE _get_pad_type(
     size_t length,
-    size_t min_stem_length,
-    size_t spacer_length
+    const StemConfig& config
 ) {
-    size_t _min_hairpin_length = _hairpin_length(min_stem_length);
-    if (length >= _min_hairpin_length + spacer_length) {
+    size_t _min_hairpin_length = _hairpin_length(config.min_length);
+    if (length >= _min_hairpin_length + config.spacer_length) {
         return _PAD_TYPE::Hairpin;
     } else {
         return _PAD_TYPE::Disordered;
     }
-};
+}
 
 size_t _get_pad_stem_length(
     size_t length,
-    size_t min_stem_length,
-    size_t max_stem_length,
-    size_t spacer_length,
+    const StemConfig& config,
     std::mt19937& gen
 ) {
     size_t _max_stem_length = std::min(
-        _stem_length(length - spacer_length),
-        max_stem_length
+        _stem_length(length - config.spacer_length),
+        config.max_length
     );
     return _sample_from_range(
-        min_stem_length,
+        config.min_length,
         _max_stem_length,
         gen
     );
@@ -369,41 +368,18 @@ typedef std::pair<std::string, _PAD_TYPE> _PAD;
 
 static inline _PAD _get_single_pad(
     size_t length,
-    size_t min_stem_length,
-    size_t max_stem_length,
-    size_t spacer_length,
-    size_t max_stem_au,
-    size_t max_stem_gc,
-    size_t max_stem_gu,
-    size_t closing_gc,
+    const StemConfig& config,
     std::mt19937& gen
 ) {
-    _PAD_TYPE type = _get_pad_type(
-        length,
-        min_stem_length,
-        spacer_length
-    );
+    _PAD_TYPE type = _get_pad_type(length, config);
     switch (type) {
         case _PAD_TYPE::Disordered: {
             return {_random_sequence(length, gen), _PAD_TYPE::Disordered};
         }
         case _PAD_TYPE::Hairpin: {
-            size_t stem_length = _get_pad_stem_length(
-                length,
-                min_stem_length,
-                max_stem_length,
-                spacer_length,
-                gen
-            );
-            std::string hairpin = _random_hairpin(
-                stem_length,
-                gen,
-                max_stem_au,
-                max_stem_gc,
-                max_stem_gu,
-                closing_gc
-            );
-            std::string spacer = _poly_a(spacer_length);
+            size_t stem_length = _get_pad_stem_length(length, config, gen);
+            std::string hairpin = _random_hairpin(stem_length, config, gen);
+            std::string spacer = _poly_a(config.spacer_length);
             // The spacer always goes on the 3' end
             return {hairpin + spacer, _PAD_TYPE::Hairpin};
         }
@@ -415,28 +391,12 @@ static inline _PAD _get_single_pad(
 
 std::string _get_padding(
     size_t length,
-    size_t min_stem_length,
-    size_t max_stem_length,
-    size_t spacer_length,
-    size_t max_stem_au,
-    size_t max_stem_gc,
-    size_t max_stem_gu,
-    size_t closing_gc,
+    const StemConfig& config,
     std::mt19937& gen
 ) {
     std::string padding;
     while (length > 0) {
-        std::string tmp = _get_single_pad(
-            length,
-            min_stem_length,
-            max_stem_length,
-            spacer_length,
-            max_stem_au,
-            max_stem_gc,
-            max_stem_gu,
-            closing_gc,
-            gen
-        ).first;
+        std::string tmp = _get_single_pad(length, config, gen).first;
         length -= tmp.length();
         padding += tmp;
     }

@@ -23,7 +23,7 @@ cmake ${CMAKE_OPTIONS} ..
 
 # Build and install project
 
-make
+make -j$(nproc)
 make install
 
 popd > /dev/null

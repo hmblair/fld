@@ -4,6 +4,7 @@
 #include "nuc.hpp"
 #include "barcodes.hpp"
 #include "utils.hpp"
+#include "config/design_config.hpp"
 
 class DesignArgs : public Program {
 public:
@@ -54,22 +55,13 @@ public:
     );
     void replace_barcode(
         size_t stem_length,
+        const StemConfig& config,
         std::mt19937 &gen,
-        size_t max_stem_au,
-        size_t max_stem_gc,
-        size_t max_stem_gu,
-        size_t closing_gc,
         std::unordered_set<std::string>& existing
     );
     void pad(
         size_t padded_size,
-        size_t min_stem_length,
-        size_t max_stem_length,
-        size_t spacer_length,
-        size_t max_stem_au,
-        size_t max_stem_gc,
-        size_t max_stem_gu,
-        size_t closing_gc,
+        const StemConfig& config,
         std::mt19937 &gen
     );
     bool has_barcode() const;
@@ -112,20 +104,11 @@ public:
 
     void barcode(
         size_t stem_length,
-        size_t max_stem_au,
-        size_t max_stem_gc,
-        size_t max_stem_gu,
-        size_t closing_gc
+        const StemConfig& config
     );
     void pad(
         size_t padded_size,
-        size_t min_stem_length,
-        size_t max_stem_length,
-        size_t spacer_length,
-        size_t max_stem_au,
-        size_t max_stem_gc,
-        size_t max_stem_gu,
-        size_t closing_gc
+        const StemConfig& config
     );
     void primerize(
         const std::string& five,
@@ -147,22 +130,7 @@ private:
 Library _from_csv(const std::string& filename);
 
 
-void _design(
-    const std::string& file,
-    const std::string& output,
-    bool overwrite,
-    int pad,
-    int barcode_length,
-    int min_stem_length,
-    int max_stem_length,
-    int max_stem_au,
-    int max_stem_gc,
-    int max_stem_gu,
-    int closing_gc,
-    int spacer,
-    const std::string& five_const,
-    const std::string& three_const
-);
+void _design(const DesignConfig& config);
 
 #endif
 

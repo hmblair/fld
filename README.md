@@ -141,6 +141,28 @@ fld duplicate --count N --output duplicates.fasta input.fasta
 ```
 The FASTA records will have "_x" appeneded to them for x from 0 to N-1.
 
+## TXT
+
+A CSV library file can be converted to a plain text file (one sequence per line) with the command
+```
+fld txt --output output input.csv
+```
+This will produce `output.txt` containing the full construct sequences.
+
+## Test
+
+The built-in test suite can be run with the command
+```
+fld test
+```
+This runs all unit and integration tests to verify the installation is working correctly. The tests cover:
+* Design padding and length verification
+* Barcode generation and Hamming distance checks
+* Sequence manipulation (DNA/RNA conversion)
+* Hairpin structure generation
+* CSV format validation
+* Preprocessing pipeline
+
 # Operations
 
 The following outlines what `fld design` will do to generate the library designs.

@@ -11,6 +11,8 @@
 #include <algorithm>
 #include <iostream>
 
+#include "config/stem_config.hpp"
+
 #define _A 'A'
 #define _C 'C'
 #define _G 'G'
@@ -20,20 +22,6 @@
 enum class Side {
     fivep,
     threep
-};
-
-class StemContent {
-public:
-    size_t max_au;
-    size_t max_gc;
-    size_t max_gu;
-    size_t closing_gc;
-    StemContent(
-        size_t max_au,
-        size_t max_gc,
-        size_t max_gu,
-        size_t closing_gc
-    );
 };
 
 char _complement(const char& base);
@@ -51,23 +39,14 @@ std::string _random_sequence(
 );
 
 std::string _random_hairpin(
-    size_t length,
-    std::mt19937& gen,
-    size_t max_stem_au,
-    size_t max_stem_gc,
-    size_t max_stem_gu,
-    size_t closing_gc
+    size_t stem_length,
+    const StemConfig& config,
+    std::mt19937& gen
 );
 
 std::string _get_padding(
     size_t length,
-    size_t min_stem_length,
-    size_t max_stem_length,
-    size_t spacer_length,
-    size_t max_stem_au,
-    size_t max_stem_gc,
-    size_t max_stem_gu,
-    size_t closing_gc,
+    const StemConfig& config,
     std::mt19937& gen
 );
 

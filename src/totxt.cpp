@@ -1,5 +1,5 @@
 #include "totxt.hpp"
-
+#include "io/writers.hpp"
 
 static inline std::string _PARSER_NAME = "txt";
 
@@ -24,17 +24,7 @@ void _to_txt(
     const std::string& output,
     bool overwrite
 ) {
-
-    // Remove any existing output files
-
-    _remove_if_exists(_txt_name(output), overwrite);
-
-    // Load the library from the provided .csv
-
+    _remove_if_exists(output_txt(output), overwrite);
     Library library = _from_csv(file);
-
-    // Save to disk
-
-    library.to_txt(_txt_name(output));
-
+    library.to_txt(output_txt(output));
 }

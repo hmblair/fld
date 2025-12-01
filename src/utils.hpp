@@ -10,10 +10,6 @@
 
 std::mt19937 _init_gen();
 
-std::string _csv_name(const std::string& prefix);
-std::string _fasta_name(const std::string& prefix);
-std::string _txt_name(const std::string& prefix);
-
 void _throw_if_not_exists(const std::string& filename);
 void _throw_if_exists(const std::string& filename);
 void _remove_if_exists(const std::string& filename);

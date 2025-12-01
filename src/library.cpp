@@ -1,49 +1,18 @@
 #include "library.hpp"
 #include "utils.hpp"
+#include "io/csv_format.hpp"
+#include "io/progress.hpp"
+#include "io/writers.hpp"
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <stdexcept>
-#include <indicators/block_progress_bar.hpp>
-
-using namespace indicators;
-
-static inline const std::vector<std::string> _csv_columns = {
-    "name",
-    "sublibrary",
-    "five_const",
-    "five_padding",
-    "design",
-    "three_padding",
-    "barcode",
-    "three_const"
-};
-
-static inline std::string _csv_header() {
-    std::string header;
-    for (size_t ix = 0; ix < _csv_columns.size() - 1; ix++) {
-        header += _csv_columns[ix];
-        header += ",";
-    }
-    header += _csv_columns[_csv_columns.size() - 1];
-    return header;
-}
 
 static inline void _check_header(const std::string& header) {
-    if (header != _csv_header()) {
+    if (!csv::is_valid_header(header)) {
         throw std::runtime_error("The columns in the .csv are not as expected.");
     }
 }
-
-StemContent::StemContent(
-    size_t max_au,
-    size_t max_gc,
-    size_t max_gu,
-    size_t closing_gc
-) : max_au(max_au),
-    max_gc(max_gc),
-    max_gu(max_gu),
-    closing_gc(closing_gc) { };
 
 //
 // Barcoding related functions
@@ -219,50 +188,23 @@ void Construct::to_dna() {
 
 void Construct::replace_barcode(
     size_t stem_length,
+    const StemConfig& config,
     std::mt19937 &gen,
-    size_t max_stem_au,
-    size_t max_stem_gc,
-    size_t max_stem_gu,
-    size_t closing_gc,
     std::unordered_set<std::string>& existing
 ) {
-    _barcode = _random_barcode(
-        stem_length,
-        gen,
-        max_stem_au,
-        max_stem_gc,
-        max_stem_gu,
-        closing_gc,
-        existing
-    );
+    _barcode = _random_barcode(stem_length, config, gen, existing);
     existing.insert(_barcode);
 }
 
 void Construct::pad(
     size_t padded_size,
-    size_t min_stem_length,
-    size_t max_stem_length,
-    size_t spacer_length,
-    size_t max_stem_au,
-    size_t max_stem_gc,
-    size_t max_stem_gu,
-    size_t closing_gc,
+    const StemConfig& config,
     std::mt19937 &gen
 ) {
     if (padded_size < design_length()) {
         throw std::runtime_error("The design region is larger than the padded size (" + std::to_string(design_length()) + " vs " + std::to_string(padded_size) + ")." );
     }
-    _fivep_padding = _get_padding(
-        padded_size - design_length(),
-        min_stem_length,
-        max_stem_length,
-        spacer_length,
-        max_stem_au,
-        max_stem_gc,
-        max_stem_gu,
-        closing_gc,
-        gen
-    );
+    _fivep_padding = _get_padding(padded_size - design_length(), config, gen);
 }
 
 bool Construct::has_barcode() const {
@@ -343,82 +285,28 @@ void Library::replace_polybases() {
 
 void Library::pad(
     size_t padded_size,
-    size_t min_stem_length,
-    size_t max_stem_length,
-    size_t spacer_length,
-    size_t max_stem_au,
-    size_t max_stem_gc,
-    size_t max_stem_gu,
-    size_t closing_gc
+    const StemConfig& config
 ) {
-
-    using namespace indicators;
-
-    // show_console_cursor(false);
-
-    BlockProgressBar bar{
-        option::BarWidth{30},
-        option::Start{"["},
-        option::End{"]"},
-        option::PrefixText{"Padding   "},
-        option::ForegroundColor{Color::white}  ,
-        option::FontStyles{std::vector<FontStyle>{FontStyle::bold}}
-    };
-
+    ProgressBar bar("Padding   ");
     size_t count = 0;
     for (auto& sequence : _sequences) {
-        sequence.pad(
-            padded_size,
-            min_stem_length,
-            max_stem_length,
-            spacer_length,
-            max_stem_au,
-            max_stem_gc,
-            max_stem_gu,
-            closing_gc,
-            _gen
-        );
+        sequence.pad(padded_size, config, _gen);
         count++;
-        bar.set_progress( (count * 100) / size());
+        bar.update(count, size());
     }
-
-    // show_console_cursor(true);
-
 }
 
 void Library::barcode(
     size_t stem_length,
-    size_t max_stem_au,
-    size_t max_stem_gc,
-    size_t max_stem_gu,
-    size_t closing_gc
+    const StemConfig& config
 ) {
-
-
-    BlockProgressBar bar{
-        option::BarWidth{30},
-        option::Start{"["},
-        option::End{"]"},
-        option::PrefixText{"Barcoding "},
-        option::ForegroundColor{Color::white}  ,
-        option::FontStyles{std::vector<FontStyle>{FontStyle::bold}}
-    };
-
+    ProgressBar bar("Barcoding ");
     size_t count = 0;
     for (auto& sequence : _sequences) {
-        sequence.replace_barcode(
-            stem_length,
-            _gen,
-            max_stem_au,
-            max_stem_gc,
-            max_stem_gu,
-            closing_gc,
-            _barcodes
-        );
+        sequence.replace_barcode(stem_length, config, _gen, _barcodes);
         count++;
-        bar.set_progress( (count * 100) / size());
+        bar.update(count, size());
     }
-
 }
 
 void Library::primerize(
@@ -433,187 +321,41 @@ void Library::primerize(
 void Library::to_csv(
     const std::string& filename
 ) const {
-    _throw_if_exists(filename);
-    std::ofstream file(filename);
-    file << _csv_header() << "\n";
+    CsvWriter writer(filename);
     for (const Construct& sequence : _sequences) {
-        file << sequence.csv_record() << "\n";
+        writer.write_line(sequence.csv_record());
     }
 }
 
 void Library::to_txt(
     const std::string& filename
 ) const {
-    _throw_if_exists(filename);
-    std::ofstream file(filename);
+    TxtWriter writer(filename);
     for (const Construct& sequence : _sequences) {
-        file << sequence.str() << "\n";
+        writer.write_line(sequence.str());
     }
 }
 
 void Library::to_fasta(
     const std::string& filename
 ) const {
-    _throw_if_exists(filename);
-    std::ofstream file(filename);
+    FastaWriter writer(filename);
     for (const Construct& sequence : _sequences) {
-        file << ">" << sequence.name() << "\n";
-        file << sequence.str() << "\n";
+        writer.write_sequence(sequence.name(), sequence.str());
     }
 }
 
 void Library::save(const std::string& prefix) const {
-    to_csv(_csv_name(prefix));
-    to_txt(_txt_name(prefix));
-    to_fasta(_fasta_name(prefix));
+    to_csv(output_csv(prefix));
+    to_txt(output_txt(prefix));
+    to_fasta(output_fasta(prefix));
 }
 
-static inline size_t _stem_counts(
-    size_t length,
-    size_t max_au,
-    size_t max_gc,
-    size_t max_gu,
-    size_t closing_gc
-) {
-    // Adjust for closing GC base pairs
-    max_gc -= closing_gc;
-
-    std::vector<std::vector<size_t>> prev(max_au + 1, std::vector<size_t>(max_gc + 1, 0));
-    std::vector<std::vector<size_t>> cur(max_au + 1, std::vector<size_t>(max_gc + 1, 0));
-
-    prev[0][0] = 1;  // Base case: 1 way to form an empty sequence
-
-    for (size_t i = 1; i <= length; ++i) {
-        for (size_t a = 0; a <= max_au; ++a) {
-            for (size_t b = 0; b <= max_gc; ++b) {
-                size_t c = i - a - b;
-                if (c > max_gu || c < 0) continue;  // Skip invalid states
-
-                size_t count = 0;
-                if (a > 0) count += prev[a - 1][b];  // Add AU pair
-                if (b > 0) count += prev[a][b - 1];  // Add GC pair
-                count += prev[a][b];  // Add GU pair
-
-                cur[a][b] = count;
-            }
-        }
-        std::swap(prev, cur);  // Move to next iteration, avoid copying
-    }
-
-    size_t result = 0;
-    for (size_t a = 0; a <= max_au; ++a) {
-        for (size_t b = 0; b <= max_gc; ++b) {
-            size_t c = length - a - b;
-            if (c <= max_gu) result += prev[a][b];  // Sum valid results
-        }
-    }
-
-    return result * (1ULL << length);
-}
-
-static inline constexpr size_t STEM_MIN = 4;
-static inline void _check_stem_length(
-    size_t min_stem_length,
-    size_t barcode_stem_length
-) {
-    if (min_stem_length < STEM_MIN) {
-        throw std::runtime_error("The minimum stem length must be at least " + std::to_string(STEM_MIN) + ".");
-    }
-    if (barcode_stem_length > 0 && barcode_stem_length < STEM_MIN) {
-        throw std::runtime_error("A nonzero barcode stem must be at least " + std::to_string(STEM_MIN) + " base pairs.");
-    }
-}
-
-static inline void _check_if_enough_bases(
-    size_t max_stem_length,
-    size_t max_stem_au,
-    size_t max_stem_gc,
-    size_t max_stem_gu
-) {
-    size_t _max_possible_stem = max_stem_au + max_stem_gc + max_stem_gu;
-    if (_max_possible_stem < max_stem_length) {
-        throw std::runtime_error("The combined maximum AU, GC, and GU counts (" + std::to_string(max_stem_au) + ", " + std::to_string(max_stem_gc) + " and " + std::to_string(max_stem_gu) + ") must be greater than the maximum stem length.");
-    }
-}
-
-static inline void _check_if_enough_barcodes(
-    size_t library_size,
-    size_t barcode_stem_length,
-    size_t max_stem_au,
-    size_t max_stem_gc,
-    size_t max_stem_gu,
-    size_t closing_gc
-) {
-    size_t _counts = _stem_counts(
-        barcode_stem_length,
-        max_stem_au,
-        max_stem_gc,
-        max_stem_gu,
-        closing_gc
-    );
-    if (_counts < library_size) {
-        throw std::runtime_error("The barcode length (" + std::to_string(barcode_stem_length) + ") and maximum base-pair counts (" + std::to_string(max_stem_au) + ", " + std::to_string(max_stem_gc) + " and " + std::to_string(max_stem_gu) + ") are only large enough to accomodate " + std::to_string(_counts) + " of the required " + std::to_string(library_size) + " unique barcodes.");
-    }
-}
-
-
-void _run_checks(
-    const Library& library,
-    size_t barcode_stem_length,
-    size_t min_stem_length,
-    size_t max_stem_length,
-    size_t max_stem_au,
-    size_t max_stem_gc,
-    size_t max_stem_gu,
-    size_t closing_gc
-) {
-    _check_stem_length(
-        min_stem_length,
-        barcode_stem_length
-    );
-    _check_if_enough_bases(
-        max_stem_length,
-        max_stem_au,
-        max_stem_gc,
-        max_stem_gu
-    );
-    if (barcode_stem_length > 0) {
-        _check_if_enough_barcodes(
-            library.size(),
-            barcode_stem_length,
-            max_stem_au,
-            max_stem_gc,
-            max_stem_gu,
-            closing_gc
-        );
-    }
-}
-
-void _add_library_elements(
+static inline void _add_library_elements(
     Library& library,
-    size_t pad_to_length,
-    size_t barcode_stem_length,
-    size_t min_stem_length,
-    size_t max_stem_length,
-    size_t max_stem_au,
-    size_t max_stem_gc,
-    size_t max_stem_gu,
-    size_t closing_gc,
-    size_t poly_a_spacer,
-    const std::string& five_const,
-    const std::string& three_const
+    const DesignConfig& config
 ) {
-
-    _run_checks(
-        library,
-        barcode_stem_length,
-        min_stem_length,
-        max_stem_length,
-        max_stem_au,
-        max_stem_gc,
-        max_stem_gu,
-        closing_gc
-    );
+    config.validate_with_library_size(library.size());
 
     // Also converts U to T
     library.replace_polybases();
@@ -622,77 +364,28 @@ void _add_library_elements(
     std::cout << "Processing " << std::to_string(library.size()) << " sequences." << std::endl;
     std::cout << "───────────────────────────────────────────────\n";
 
-    library.pad(
-        pad_to_length,
-        min_stem_length,
-        max_stem_length,
-        poly_a_spacer,
-        max_stem_au,
-        max_stem_gc,
-        max_stem_gu,
-        closing_gc
-    );
-    if (barcode_stem_length > 0) {
+    library.pad(config.pad_to_length, config.stem);
+    if (config.barcode.is_enabled()) {
         std::cout << std::endl;
-        library.barcode(
-            barcode_stem_length,
-            max_stem_au,
-            max_stem_gc,
-            max_stem_gu,
-            closing_gc
-        );
+        library.barcode(config.barcode.stem_length, config.barcode.stem);
     }
     std::cout << "\n";
     std::cout << "\n";
-    library.primerize(five_const, three_const);
+    library.primerize(config.five_const, config.three_const);
 }
 
-void _design(
-    const std::string& file,
-    const std::string& output,
-    bool overwrite,
-    int pad,
-    int barcode_length,
-    int min_stem_length,
-    int max_stem_length,
-    int max_stem_au,
-    int max_stem_gc,
-    int max_stem_gu,
-    int closing_gc,
-    int spacer,
-    const std::string& five_const,
-    const std::string& three_const
-) {
-
+void _design(const DesignConfig& config) {
     // Remove any existing output files
-
-    _remove_if_exists_all(output, overwrite);
+    _remove_if_exists_all(config.output_prefix, config.overwrite);
 
     // Load the library from the provided .csv
-
-    Library library = _from_csv(file);
+    Library library = _from_csv(config.input_path);
 
     // Add all desired library elements
-
-    _add_library_elements(
-       library,
-       pad,
-       barcode_length,
-       min_stem_length,
-       max_stem_length,
-       max_stem_au,
-       max_stem_gc,
-       max_stem_gu,
-       closing_gc,
-       spacer,
-       five_const,
-       three_const
-    );
+    _add_library_elements(library, config);
 
     // Save to disk
-
-    library.save(output);
-
+    library.save(config.output_prefix);
 }
 
 //

@@ -10,6 +10,7 @@
 #include "random.hpp"
 #include "duplicate.hpp"
 #include "totxt.hpp"
+#include "test.hpp"
 
 const auto PROGRAM = "fld";
 const auto VERSION = "0.2.0";
@@ -22,7 +23,8 @@ enum class MODE {
     M2,
     Random,
     Duplicate,
-    TXT
+    TXT,
+    Test
 };
 
 class SuperProgram {
@@ -40,6 +42,7 @@ public:
     RandomArgs random;
     DuplicateArgs duplicate;
     txtArgs txt;
+    TestArgs test;
 
     SuperProgram();
     void parse(int argc, char** argv);
@@ -51,6 +54,7 @@ public:
     bool is_random() const;
     bool is_duplicate() const;
     bool is_txt() const;
+    bool is_test() const;
     MODE mode() const;
 
 };
