@@ -35,7 +35,6 @@ struct MergedEntry {
     std::string barcode;
     double design_reads;
     double barcode_reads;
-    double total_reads;
 };
 
 void _merge(
@@ -119,7 +118,6 @@ void _merge(
         entry.barcode = barcode_entries[i].barcode;
         entry.design_reads = library_entries[i].reads;
         entry.barcode_reads = barcode_entries[i].reads;
-        entry.total_reads = entry.design_reads + entry.barcode_reads;
 
         // Replace the barcode field
         if (entry.fields.size() > csv::BARCODE) {
@@ -129,24 +127,17 @@ void _merge(
         merged.push_back(entry);
     }
 
-    // Sort merged by total reads ASCENDING
-    std::sort(merged.begin(), merged.end(),
-        [](const MergedEntry& a, const MergedEntry& b) {
-            return a.total_reads < b.total_reads;
-        });
-
     // Write output CSV with extra columns
     std::string csv_out = output_prefix + ".csv";
     std::ofstream out_csv(csv_out);
-    out_csv << header_line << ",design_reads,barcode_reads,total_reads\n";
+    out_csv << header_line << ",design_reads,barcode_reads\n";
     for (const auto& entry : merged) {
         for (size_t i = 0; i < entry.fields.size(); i++) {
             out_csv << entry.fields[i];
             if (i < entry.fields.size() - 1) out_csv << ",";
         }
         out_csv << "," << entry.design_reads
-                << "," << entry.barcode_reads
-                << "," << entry.total_reads << "\n";
+                << "," << entry.barcode_reads << "\n";
     }
     out_csv.close();
 

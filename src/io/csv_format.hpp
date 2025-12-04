@@ -43,6 +43,7 @@ const std::vector<std::string>& columns();
 const std::string& header();
 
 /// Check if a header line matches the expected format.
+/// Accepts both exact matches and extended headers (with extra columns appended).
 bool is_valid_header(const std::string& line);
 
 }  // namespace csv

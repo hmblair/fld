@@ -34,7 +34,14 @@ const std::string& header() {
 }
 
 bool is_valid_header(const std::string& line) {
-    return line == _header;
+    // Allow exact match or prefix match (for extended headers with extra columns)
+    if (line == _header) return true;
+    if (line.size() > _header.size() &&
+        line.substr(0, _header.size()) == _header &&
+        line[_header.size()] == ',') {
+        return true;
+    }
+    return false;
 }
 
 }  // namespace csv

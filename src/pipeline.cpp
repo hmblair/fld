@@ -3,6 +3,7 @@
 #include "library.hpp"
 #include "barcodes.hpp"
 #include "merge.hpp"
+#include "sort.hpp"
 #include "m2.hpp"
 #include "config/design_config.hpp"
 #include "io/csv_format.hpp"
@@ -282,8 +283,39 @@ void _pipeline(const PipelineConfig& config) {
 
             // Step 7: Merge barcodes with read-count balancing
             std::cout << "\n----- Merging barcodes with read-count balancing -----\n\n";
-            std::string merged_output = config.output_dir + "/library";
-            _merge(final_library + ".csv", library_reads, barcodes_file, barcode_reads, merged_output, true);
+            std::string merged_prefix = tmp_dir + "/merged";
+            _merge(final_library + ".csv", library_reads, barcodes_file, barcode_reads, merged_prefix, true);
+
+            // Step 8: Predict reads for merged sequences
+            std::cout << "\n----- Predicting final read counts -----\n\n";
+
+            std::string merged_tokens = tmp_dir + "/merged_tokens.nc";
+            std::cout << "Tokenizing merged sequences...\n";
+            if (_run_command("rn-coverage tokenize " + merged_prefix + ".txt " + merged_tokens) != 0) {
+                throw std::runtime_error("Failed to tokenize merged sequences");
+            }
+
+            std::string merged_config = tmp_dir + "/merged_predict.yaml";
+            std::string merged_pred_dir = predict_dir + "/merged";
+            _write_predict_config(merged_config, merged_tokens, merged_pred_dir, config.batch_size);
+
+            std::cout << "\nPredicting merged read counts...\n";
+            if (_run_command("rn-coverage predict " + merged_config) != 0) {
+                throw std::runtime_error("Failed to predict merged read counts");
+            }
+
+            std::string merged_pred_nc = merged_pred_dir + "/merged_tokens.nc";
+            std::string merged_reads = tmp_dir + "/merged_reads.txt";
+
+            std::cout << "\nExtracting predictions...\n";
+            if (_run_command("rn-coverage extract " + merged_pred_nc + " " + merged_reads) != 0) {
+                throw std::runtime_error("Failed to extract merged predictions");
+            }
+
+            // Step 9: Sort by final read counts
+            std::cout << "\n----- Sorting by final read counts -----\n\n";
+            std::string final_output = config.output_dir + "/library";
+            _sort(merged_prefix + ".csv", merged_reads, final_output, true, false);
 
         } else {
             // No prediction - print manual instructions
