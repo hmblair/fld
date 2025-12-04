@@ -12,7 +12,7 @@ static inline std::string _OUTPUT_HELP = "The output prefix.";
 static inline std::string _OVERWRITE_NAME = "--overwrite";
 static inline std::string _OVERWRITE_HELP = "Overwrite any existing file.";
 
-txtArgs::txtArgs() :
+TxtArgs::TxtArgs() :
     Program(_PARSER_NAME),
     file(_parser, _FILE_NAME, _FILE_HELP),
     output(_parser, _OUTPUT_NAME, _OUTPUT_HELP),

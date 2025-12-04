@@ -27,10 +27,3 @@ make -j$(nproc)
 make install
 
 popd > /dev/null
-
-# Post-install steps
-
-ln -sf ${SCRIPT_DIR}/src/fld-all ${BIN_DIR}/fld-all
-ln -sf ${SCRIPT_DIR}/src/fld-merge ${BIN_DIR}/fld-merge
-ln -sf ${SCRIPT_DIR}/src/fld-pad ${BIN_DIR}/fld-pad
-ln -sf ${SCRIPT_DIR}/src/fld-sort ${BIN_DIR}/fld-sort

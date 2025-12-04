@@ -11,6 +11,10 @@
 #include "duplicate.hpp"
 #include "totxt.hpp"
 #include "test.hpp"
+#include "categorize.hpp"
+#include "sort.hpp"
+#include "merge.hpp"
+#include "pipeline.hpp"
 
 const auto PROGRAM = "fld";
 const auto VERSION = "0.2.0";
@@ -24,7 +28,11 @@ enum class MODE {
     Random,
     Duplicate,
     TXT,
-    Test
+    Test,
+    Categorize,
+    Sort,
+    Merge,
+    Pipeline
 };
 
 class SuperProgram {
@@ -41,8 +49,12 @@ public:
     M2Args m2;
     RandomArgs random;
     DuplicateArgs duplicate;
-    txtArgs txt;
+    TxtArgs txt;
     TestArgs test;
+    CategorizeArgs categorize;
+    SortArgs sort;
+    MergeArgs merge;
+    PipelineArgs pipeline;
 
     SuperProgram();
     void parse(int argc, char** argv);
@@ -55,6 +67,10 @@ public:
     bool is_duplicate() const;
     bool is_txt() const;
     bool is_test() const;
+    bool is_categorize() const;
+    bool is_sort() const;
+    bool is_merge() const;
+    bool is_pipeline() const;
     MODE mode() const;
 
 };

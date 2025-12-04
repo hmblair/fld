@@ -35,6 +35,16 @@ std::string _get_fasta_seq(const std::string& line);
 
 double _percent(size_t val, size_t total);
 
+// Load a file containing one numeric value per line.
+// Pads with zeros if the file has fewer entries than expected_count.
+std::vector<double> _load_reads(
+    const std::string& filename,
+    size_t expected_count
+);
+
+// Load a file containing one string per line (skips empty lines).
+std::vector<std::string> _load_lines(const std::string& filename);
+
 typedef argparse::ArgumentParser Parser;
 template <typename T>
 class Arg {

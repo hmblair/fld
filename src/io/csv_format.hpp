@@ -1,3 +1,15 @@
+/**
+ * @file csv_format.hpp
+ * @brief CSV format definitions for library files.
+ *
+ * Defines the column structure for library CSV files:
+ *
+ *   name,sublibrary,five_const,five_padding,design,three_padding,barcode,three_const
+ *
+ * Each row represents a single construct. Empty fields are allowed for
+ * columns that haven't been filled yet (e.g., barcode before barcoding).
+ */
+
 #ifndef CSV_FORMAT_H
 #define CSV_FORMAT_H
 
@@ -6,26 +18,31 @@
 
 namespace csv {
 
-// Column indices for type-safe access
+/**
+ * Column indices for type-safe CSV field access.
+ *
+ * Use these constants instead of magic numbers when accessing
+ * CSV fields to ensure code remains correct if the format changes.
+ */
 enum Column {
-    NAME = 0,
-    SUBLIBRARY = 1,
-    FIVE_CONST = 2,
-    FIVE_PADDING = 3,
-    DESIGN = 4,
-    THREE_PADDING = 5,
-    BARCODE = 6,
-    THREE_CONST = 7,
-    COUNT = 8  // Total number of columns
+    NAME = 0,           ///< Sequence identifier
+    SUBLIBRARY = 1,     ///< Sublibrary grouping
+    FIVE_CONST = 2,     ///< 5' constant/primer region
+    FIVE_PADDING = 3,   ///< 5' padding hairpins
+    DESIGN = 4,         ///< The design sequence of interest
+    THREE_PADDING = 5,  ///< 3' padding hairpins
+    BARCODE = 6,        ///< Barcode hairpin for identification
+    THREE_CONST = 7,    ///< 3' constant/primer region
+    COUNT = 8           ///< Total number of columns
 };
 
-// Get the column names
+/// Get the list of column names.
 const std::vector<std::string>& columns();
 
-// Get the CSV header string
+/// Get the CSV header string.
 const std::string& header();
 
-// Check if a header line matches the expected format
+/// Check if a header line matches the expected format.
 bool is_valid_header(const std::string& line);
 
 }  // namespace csv

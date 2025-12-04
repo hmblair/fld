@@ -10,6 +10,10 @@ SuperProgram::SuperProgram() : _parent(PROGRAM, VERSION) {
     _parent.add_subparser(duplicate._parser);
     _parent.add_subparser(txt._parser);
     _parent.add_subparser(test._parser);
+    _parent.add_subparser(categorize._parser);
+    _parent.add_subparser(sort._parser);
+    _parent.add_subparser(merge._parser);
+    _parent.add_subparser(pipeline._parser);
 };
 void SuperProgram::parse(int argc, char** argv) {
     _parent.parse_args(argc, argv);
@@ -51,6 +55,22 @@ bool SuperProgram::is_test() const {
     return test.used(_parent);
 }
 
+bool SuperProgram::is_categorize() const {
+    return categorize.used(_parent);
+}
+
+bool SuperProgram::is_sort() const {
+    return sort.used(_parent);
+}
+
+bool SuperProgram::is_merge() const {
+    return merge.used(_parent);
+}
+
+bool SuperProgram::is_pipeline() const {
+    return pipeline.used(_parent);
+}
+
 MODE SuperProgram::mode() const {
     if (is_design()) {
         return MODE::Design;
@@ -70,6 +90,14 @@ MODE SuperProgram::mode() const {
         return MODE::TXT;
     } else if (is_test()) {
         return MODE::Test;
+    } else if (is_categorize()) {
+        return MODE::Categorize;
+    } else if (is_sort()) {
+        return MODE::Sort;
+    } else if (is_merge()) {
+        return MODE::Merge;
+    } else if (is_pipeline()) {
+        return MODE::Pipeline;
     } else {
         throw std::runtime_error("Unknown subcommand.");
     }
@@ -186,7 +214,7 @@ int main(int argc, char** argv) {
             }
 
             case MODE::TXT: {
-                txtArgs& opt = parent.txt;
+                TxtArgs& opt = parent.txt;
                 _to_txt(
                     opt.file,
                     opt.output,
@@ -197,6 +225,67 @@ int main(int argc, char** argv) {
 
             case MODE::Test: {
                 return _run_tests(argv[0]);
+            }
+
+            case MODE::Categorize: {
+                CategorizeArgs& opt = parent.categorize;
+                _categorize(
+                    opt.file,
+                    opt.output,
+                    opt.overwrite,
+                    opt.bins
+                );
+                break;
+            }
+
+            case MODE::Sort: {
+                SortArgs& opt = parent.sort;
+                _sort(
+                    opt.file,
+                    opt.reads,
+                    opt.output,
+                    opt.overwrite,
+                    opt.descending
+                );
+                break;
+            }
+
+            case MODE::Merge: {
+                MergeArgs& opt = parent.merge;
+                _merge(
+                    opt.library,
+                    opt.library_reads,
+                    opt.barcodes,
+                    opt.barcode_reads,
+                    opt.output,
+                    opt.overwrite
+                );
+                break;
+            }
+
+            case MODE::Pipeline: {
+                PipelineArgs& opt = parent.pipeline;
+                PipelineConfig config;
+                config.inputs = opt.inputs;
+                config.output_dir = opt.output;
+                config.overwrite = opt.overwrite;
+                config.pad_to = opt.pad_to;
+                config.five_const = opt.five_const;
+                config.three_const = opt.three_const;
+                config.stem.min_length = opt.min_stem_length;
+                config.stem.max_length = opt.max_stem_length;
+                config.stem.max_au = opt.max_au;
+                config.stem.max_gc = opt.max_gc;
+                config.stem.max_gu = opt.max_gu;
+                config.stem.closing_gc = opt.closing_gc;
+                config.stem.spacer_length = opt.spacer;
+                config.barcode_length = opt.barcode_length;
+                config.no_barcodes = opt.no_barcodes;
+                config.generate_m2 = opt.m2;
+                config.predict = opt.predict;
+                config.batch_size = opt.batch_size;
+                _pipeline(config);
+                break;
             }
 
         }

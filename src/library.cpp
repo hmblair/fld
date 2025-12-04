@@ -15,70 +15,24 @@ static inline void _check_header(const std::string& header) {
 }
 
 //
-// Barcoding related functions
-//
-
-// static inline std::string _random_barcode_with_fold(
-//     const std::string& sequence,
-//     size_t stem_length,
-//     std::mt19937 &gen,
-//     size_t max_stem_au,
-//     size_t max_stem_gc,
-//     size_t max_stem_gu,
-//     size_t closing_gc,
-//     const std::unordered_set<std::string>& existing,
-//     double cutoff,
-//     size_t max_attempts
-// ) {
-//     std::string barcode, best_barcode = _random_barcode(
-//         stem_length,
-//         gen,
-//         max_stem_au,
-//         max_stem_gc,
-//         max_stem_gu,
-//         closing_gc,
-//         existing
-//     );
-//     if (max_attempts <= 0) {
-//         return best_barcode;
-//     }
-//     double score = 0, best_score = _score_hairpin(sequence, barcode, 4);
-//     size_t attempts = 0;
-//     while (score < cutoff && attempts < max_attempts) {
-//         barcode = _random_barcode(
-//                 stem_length,
-//                 gen,
-//                 max_stem_au,
-//                 max_stem_gc,
-//                 max_stem_gu,
-//                 closing_gc,
-//                 existing
-//         );
-//         score = _score_hairpin(sequence, barcode, 4);
-//         attempts++;
-//         if (score > best_score) {
-//             best_score = score;
-//             best_barcode = barcode;
-//         }
-//     }
-//     return best_barcode;
-// }
-
-//
 // Construct
 //
 
 static inline Construct _from_record(const std::string& record) {
     std::vector<std::string> columns = _split_by_delimiter(record, ',');
+    if (columns.size() < csv::COUNT) {
+        throw std::runtime_error("CSV record has " + std::to_string(columns.size()) +
+            " columns, expected " + std::to_string(csv::COUNT));
+    }
     return Construct(
-        columns[0],
-        columns[1],
-        columns[2],
-        columns[3],
-        columns[4],
-        columns[5],
-        columns[6],
-        columns[7]
+        columns[csv::NAME],
+        columns[csv::SUBLIBRARY],
+        columns[csv::FIVE_CONST],
+        columns[csv::FIVE_PADDING],
+        columns[csv::DESIGN],
+        columns[csv::THREE_PADDING],
+        columns[csv::BARCODE],
+        columns[csv::THREE_CONST]
     );
 }
 

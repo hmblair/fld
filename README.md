@@ -17,31 +17,26 @@ Don't forget to add the `./bin` directory to your path.
 
 ## Additional Dependencies
 
-If you are running the entire pipeline, including barcode rebalancing and coverage-based sorting, you will also need
-* `csvstack`,
-* `rn-coverage`.
-
-Instructions for installing `rn-coverage` can be found at https://github.com/hmblair/rn-coverage.
+For barcode rebalancing with predicted read counts, you will need a read prediction tool such as `rn-coverage`. Instructions for installing `rn-coverage` can be found at https://github.com/hmblair/rn-coverage.
 
 # Start Here
 
 The command
 ```
-fld-all INPUT-DIR OUTPUT-DIR CONFIG
+fld pipeline -o OUTPUT-DIR --pad-to 130 --barcode-length 10 *.fasta
 ```
-will run the entire library design pipeline. All FASTA files in `INPUT-DIR` will be used as designs. The `CONFIG` file is a text file with two lines; the first line is all arguments to be passed to `fld design`, and the second is all arguments to be passed to `fld barcodes` (see below for details on what arguments are available).
+will run the library design pipeline. All specified FASTA files will be preprocessed, padded, and barcoded.
 
-For example, to pad all designs to 100nt with barcodes of stem length 13nt and restrictions on the GC and GU content, the `CONFIG` file would be
+For example, to pad all designs to 100nt with barcodes of stem length 13nt and restrictions on the GC and GU content:
 ```
---max-gc 5 --max-gu 1 --pad-to 100
---max-gc 5 --max-gu 1 --length 13
+fld pipeline -o output/ --pad-to 100 --barcode-length 13 --max-gc 5 --max-gu 1 input/*.fasta
 ```
 
-Please note that the `--count` command for `fld-barcodes` and both `-o` commands are internally handled, and should not be passed.
+To also generate M2-seq complement sequences, add the `--m2` flag.
 
 ## What settings should I use?
 
-If you are unsure what settings to use, then you should set `--pad-to` for `fld design` and `--length` for `fld barcodes`, and leave the rest at their defaults.
+If you are unsure what settings to use, then you should set `--pad-to` and `--barcode-length`, and leave the rest at their defaults.
 
 If you get an error telling you there are not enough barcodes, then you should bump up `--max-gu` until the error goes away. You could also increase `--max-gc`, but this is more likely to cause experimental issues.
 
@@ -162,6 +157,55 @@ This runs all unit and integration tests to verify the installation is working c
 * Hairpin structure generation
 * CSV format validation
 * Preprocessing pipeline
+
+## Categorize
+
+Split a FASTA file by sequence length into bins:
+```
+fld categorize --output output_dir/ [--bins 130 240 500 2000] input.fasta
+```
+Sequences are placed in the smallest bin they fit in. The default bins are 130, 240, 500, and 2000 nucleotides. All U bases are converted to T.
+
+## Sort
+
+Sort a library CSV by predicted read counts:
+```
+fld sort --reads reads.txt -o sorted input.csv
+```
+The reads file should contain one read count per line, in the same order as the CSV rows. Use `--descending` to sort highest reads first.
+
+## Merge
+
+Merge barcodes into a library using read-count balancing:
+```
+fld merge --library library.csv --library-reads lib_reads.txt \
+          --barcodes barcodes.txt --barcode-reads bc_reads.txt \
+          -o merged
+```
+This pairs low-read designs with high-read barcodes to balance coverage across the library. The output includes `design_reads`, `barcode_reads`, and `total_reads` columns.
+
+## Pipeline
+
+Run the complete library design pipeline:
+```
+fld pipeline -o OUTPUT-DIR --pad-to 130 --barcode-length 10 *.fasta
+```
+
+This command:
+1. Takes one or more FASTA files as input
+2. Optionally generates M2-seq complements (`--m2`)
+3. Preprocesses all sequences
+4. Runs `fld design` with the specified padding
+5. Generates barcodes
+
+After running the pipeline, you can use a read prediction tool on the output files, then run `fld merge` to pair barcodes with designs based on predicted read counts.
+
+Available options:
+* `--pad-to`: Target sequence length (default: 130)
+* `--barcode-length`: Barcode stem length, 0 to disable (default: 10)
+* `--no-barcodes`: Skip barcode generation entirely
+* `--m2`: Generate M2-seq complement sequences
+* All stem configuration options (`--max-gc`, `--max-gu`, etc.)
 
 # Operations
 

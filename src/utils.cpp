@@ -100,6 +100,53 @@ double _percent(size_t val, size_t total) {
     return _frac(val, total) * 100;
 }
 
+std::vector<double> _load_reads(const std::string& filename, size_t expected_count) {
+    std::vector<double> reads;
+    std::ifstream in(filename);
+    if (!in) {
+        throw std::runtime_error("Cannot open reads file: " + filename);
+    }
+
+    std::string line;
+    size_t line_num = 0;
+    while (std::getline(in, line)) {
+        line_num++;
+        if (line.empty()) continue;
+        try {
+            reads.push_back(std::stod(line));
+        } catch (const std::exception&) {
+            throw std::runtime_error(
+                "Invalid number in " + filename + " at line " + std::to_string(line_num) +
+                ": \"" + line + "\""
+            );
+        }
+    }
+
+    // Pad with zeros if reads file is shorter
+    while (reads.size() < expected_count) {
+        reads.push_back(0.0);
+    }
+
+    return reads;
+}
+
+std::vector<std::string> _load_lines(const std::string& filename) {
+    std::vector<std::string> lines;
+    std::ifstream in(filename);
+    if (!in) {
+        throw std::runtime_error("Cannot open file: " + filename);
+    }
+
+    std::string line;
+    while (std::getline(in, line)) {
+        if (!line.empty()) {
+            lines.push_back(line);
+        }
+    }
+
+    return lines;
+}
+
 static inline std::string _remove_from_start(
     const std::string& str,
     char ch
@@ -224,6 +271,33 @@ void _init_parser<std::vector<std::string>>(
         .help(help);
 }
 
+template<>
+void _init_parser<std::vector<int>>(
+    Parser& parser,
+    const std::string& name,
+    const std::string& help
+) {
+    parser.add_argument(name)
+        .nargs(argparse::nargs_pattern::at_least_one)
+        .scan<'d', int>()
+        .required()
+        .help(help);
+}
+
+template<>
+void _init_parser<std::vector<int>>(
+    Parser& parser,
+    const std::string& name,
+    const std::string& help,
+    std::vector<int> default_value
+) {
+    parser.add_argument(name)
+        .nargs(argparse::nargs_pattern::at_least_one)
+        .scan<'d', int>()
+        .default_value(default_value)
+        .help(help);
+}
+
 template <typename T>
 Arg<T>::Arg (
     Parser& parser,
@@ -257,6 +331,7 @@ template class Arg<int>;
 template class Arg<bool>;
 template class Arg<std::string>;
 template class Arg<std::vector<std::string>>;
+template class Arg<std::vector<int>>;
 
 Program::Program(std::string name) : _name(name), _parser(name) {};
 

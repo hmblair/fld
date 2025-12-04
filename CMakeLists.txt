@@ -50,6 +50,10 @@ add_executable(${PROJECT_NAME}
     src/duplicate.cpp
     src/totxt.cpp
     src/test.cpp
+    src/categorize.cpp
+    src/sort.cpp
+    src/merge.cpp
+    src/pipeline.cpp
     src/config/stem_config.cpp
     src/config/barcode_config.cpp
     src/config/design_config.cpp
@@ -90,6 +94,10 @@ if(BUILD_TESTS)
         src/random.cpp
         src/duplicate.cpp
         src/totxt.cpp
+        src/categorize.cpp
+        src/sort.cpp
+        src/merge.cpp
+        src/pipeline.cpp
         src/config/stem_config.cpp
         src/config/barcode_config.cpp
         src/config/design_config.cpp
