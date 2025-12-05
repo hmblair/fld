@@ -3,10 +3,8 @@
 
 
 static inline std::string _PARSER_NAME = "inspect";
-// File
 static inline std::string _FILES_NAME = "files";
 static inline std::string _FILES_HELP = "The input .fasta file or files.";
-// Sort
 static inline std::string _SORT_NAME = "--sort";
 static inline std::string _SORT_HELP = "Sort the output sequences by count rather than length.";
 
@@ -17,16 +15,12 @@ InspectArgs::InspectArgs() :
 
 }
 
-static inline std::unordered_map<size_t, size_t> _get_length_counts(const std::vector<std::string>& names) {
+static inline std::unordered_map<size_t, size_t> _get_length_counts(const std::string& filename) {
     std::unordered_map<size_t, size_t> counts;
-
-    for (const auto& name: names) {
-        _throw_if_not_exists(name);
-        for_each_fasta(name, [&counts](const FastaEntry& entry) {
-            counts[entry.sequence.length()]++;
-        });
-    }
-
+    _throw_if_not_exists(filename);
+    for_each_fasta(filename, [&counts](const FastaEntry& entry) {
+        counts[entry.sequence.length()]++;
+    });
     return counts;
 }
 
@@ -44,7 +38,8 @@ static inline bool _compare_by_count(
     return a.second < b.second;
 }
 
-size_t find_longest(const std::vector<std::pair<size_t, size_t>>& vec) {
+static inline size_t find_longest(const std::vector<std::pair<size_t, size_t>>& vec) {
+    if (vec.empty()) return 0;
     auto max_pair = *std::max_element(vec.begin(), vec.end(),
         [](const std::pair<size_t, size_t>& a, const std::pair<size_t, size_t>& b) {
             return a.first < b.first;
@@ -52,7 +47,8 @@ size_t find_longest(const std::vector<std::pair<size_t, size_t>>& vec) {
     return max_pair.first;
 }
 
-size_t find_most(const std::vector<std::pair<size_t, size_t>>& vec) {
+static inline size_t find_most(const std::vector<std::pair<size_t, size_t>>& vec) {
+    if (vec.empty()) return 0;
     auto max_pair = *std::max_element(vec.begin(), vec.end(),
         [](const std::pair<size_t, size_t>& a, const std::pair<size_t, size_t>& b) {
             return a.second < b.second;
@@ -60,7 +56,6 @@ size_t find_most(const std::vector<std::pair<size_t, size_t>>& vec) {
     return max_pair.second;
 }
 
-// Helper function to pluralize the word "sequence"
 static inline std::string _pluralize(const std::string& str, size_t count) {
     if (count == 1) {
         return str;
@@ -68,37 +63,48 @@ static inline std::string _pluralize(const std::string& str, size_t count) {
     return str + "s";
 }
 
-static inline void _print_length_counts(const std::unordered_map<size_t, size_t>& counts, bool sort) {
+static inline void _merge_counts(
+    std::unordered_map<size_t, size_t>& total,
+    const std::unordered_map<size_t, size_t>& other
+) {
+    for (const auto& [length, count] : other) {
+        total[length] += count;
+    }
+}
+
+static inline void _print_length_counts(
+    const std::unordered_map<size_t, size_t>& counts,
+    bool sort_by_count,
+    const std::string& label = "",
+    bool bold = false
+) {
     std::vector<std::pair<size_t, size_t>> count_pairs(counts.begin(), counts.end());
 
-    if (sort) {
-        std::sort(
-            count_pairs.begin(),
-            count_pairs.end(),
-            _compare_by_count
-        );
+    if (sort_by_count) {
+        std::sort(count_pairs.begin(), count_pairs.end(), _compare_by_count);
     } else {
-        std::sort(
-            count_pairs.begin(),
-            count_pairs.end(),
-            _compare_by_length
-        );
+        std::sort(count_pairs.begin(), count_pairs.end(), _compare_by_length);
     }
 
-    // Calculate the total number of sequences
     size_t total = 0;
     for (const auto& pair : count_pairs) {
         total += pair.second;
     }
-    // Get the longest sequence
+
     size_t longest = find_longest(count_pairs);
     size_t longest_digits = std::to_string(longest).length();
-    // Get the highest sequence count
     size_t most = find_most(count_pairs);
     size_t most_digits = std::to_string(most).length();
 
-    // Print the counts and percentages of sequences of each length
     std::cout << "\n";
+    if (!label.empty()) {
+        if (bold) std::cout << "\033[1m";
+        std::cout << "  " << label << "\n";
+        std::cout << "  " << std::string(label.length(), '-');
+        if (bold) std::cout << "\033[0m";
+        std::cout << "\n";
+    }
+
     for (const auto& pair : count_pairs) {
         size_t length = pair.first;
         size_t count = pair.second;
@@ -109,10 +115,24 @@ static inline void _print_length_counts(const std::unordered_map<size_t, size_t>
     }
     std::cout << "\n";
     std::cout << "  Total: " << total << _pluralize(" sequence", total) << "\n";
-    std::cout << "\n";
 }
 
 void _inspect(const std::vector<std::string>& files, bool sort) {
-    std::unordered_map<size_t, size_t> counts = _get_length_counts(files);
-    _print_length_counts(counts, sort);
+    if (files.size() == 1) {
+        // Single file - just show its stats
+        auto counts = _get_length_counts(files[0]);
+        _print_length_counts(counts, sort);
+    } else {
+        // Multiple files - show per-file stats and total
+        std::unordered_map<size_t, size_t> total_counts;
+
+        for (const auto& file : files) {
+            auto counts = _get_length_counts(file);
+            _print_length_counts(counts, sort, file);
+            _merge_counts(total_counts, counts);
+        }
+
+        // Print combined total
+        _print_length_counts(total_counts, sort, "Total (all files)", true);
+    }
 }
