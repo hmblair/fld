@@ -100,18 +100,6 @@ std::string _quote_csv_field(const std::string& field) {
     return escaped;
 }
 
-bool _is_fasta_header(const std::string& line) {
-    return !line.empty() && line[0] == '>';
-}
-
-std::string _get_fasta_name(const std::string& line) {
-    return line.substr(1);
-}
-
-std::string _get_fasta_seq(const std::string& line) {
-    return line;
-}
-
 double _frac(size_t val, size_t total) {
     double _val = static_cast<double>(val);
     double _total = static_cast<double>(total);

@@ -1,5 +1,5 @@
 #include "torna.hpp"
-#include <fstream>
+#include "io/fasta_io.hpp"
 #include <iostream>
 #include <algorithm>
 
@@ -13,6 +13,12 @@ ToRnaArgs::ToRnaArgs() : Program(_PARSER_NAME),
     _parser.add_description("Convert DNA sequences to RNA (T -> U).");
 }
 
+static inline std::string to_rna(std::string seq) {
+    std::replace(seq.begin(), seq.end(), 'T', 'U');
+    std::replace(seq.begin(), seq.end(), 't', 'u');
+    return seq;
+}
+
 void _to_rna(
     const std::string& input_fasta,
     const std::string& output_fasta,
@@ -21,29 +27,13 @@ void _to_rna(
     _throw_if_not_exists(input_fasta);
     _remove_if_exists(output_fasta, overwrite);
 
-    std::ifstream in(input_fasta);
-    std::ofstream out(output_fasta);
-
-    std::string line;
+    FastaOutputStream out(output_fasta);
     size_t count = 0;
 
-    while (std::getline(in, line)) {
-        if (line.empty()) {
-            out << "\n";
-            continue;
-        }
-
-        if (line[0] == '>') {
-            // Header line - pass through
-            out << line << "\n";
-        } else {
-            // Sequence line - convert T to U
-            std::replace(line.begin(), line.end(), 'T', 'U');
-            std::replace(line.begin(), line.end(), 't', 'u');
-            out << line << "\n";
-            count++;
-        }
-    }
+    for_each_fasta(input_fasta, [&](const FastaEntry& entry) {
+        out.write(entry.name, to_rna(entry.sequence));
+        count++;
+    });
 
     std::cout << "Converted " << count << " sequences to RNA.\n";
     std::cout << "Output: " << output_fasta << "\n";

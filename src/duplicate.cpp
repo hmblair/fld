@@ -1,4 +1,5 @@
 #include "duplicate.hpp"
+#include "io/fasta_io.hpp"
 
 void _duplicate(
     const std::string& input,
@@ -6,41 +7,17 @@ void _duplicate(
     bool overwrite,
     int count
 ) {
-
+    _throw_if_not_exists(input);
     _remove_if_exists(output, overwrite);
-    std::ifstream infile(input);
-    std::ofstream outfile(output);
 
-    std::string line;
-    std::string sequence;
-    std::string header;
+    FastaOutputStream out(output);
 
-    while (std::getline(infile, line)) {
-
-        if (_is_fasta_header(line)) {
-            header = line;
-            if (!sequence.empty()) {
-                for (int32_t ix = 0; ix < count; ix++) {
-                    outfile << header << "_" << ix << "\n";
-                    outfile << sequence << "\n";
-                }
-                sequence.clear();
-            }
-        } else {
-            sequence += line;
+    for_each_fasta(input, [&](const FastaEntry& entry) {
+        for (int ix = 0; ix < count; ix++) {
+            out.write(entry.name + "_" + std::to_string(ix), entry.sequence);
         }
-
-    }
-
-    if (!sequence.empty()) {
-        for (int32_t ix = 0; ix < count; ix++) {
-            outfile << header << "_" << ix << "\n";
-            outfile << sequence << "\n";
-        }
-    }
-
+    });
 }
-
 
 
 //

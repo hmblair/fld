@@ -1,4 +1,5 @@
 #include "inspect.hpp"
+#include "io/fasta_io.hpp"
 
 
 static inline std::string _PARSER_NAME = "inspect";
@@ -17,31 +18,13 @@ InspectArgs::InspectArgs() :
 }
 
 static inline std::unordered_map<size_t, size_t> _get_length_counts(const std::vector<std::string>& names) {
-
     std::unordered_map<size_t, size_t> counts;
-    size_t curr_length = 0;
-    std::string line;
 
     for (const auto& name: names) {
-
         _throw_if_not_exists(name);
-        std::ifstream file(name);
-
-        while (std::getline(file, line)) {
-            if (_is_fasta_header(line)) {
-                if (curr_length > 0) {
-                    counts[curr_length]++;
-                    curr_length = 0;
-                }
-            } else {
-                curr_length += line.length();
-            }
-        }
-
-        if (curr_length > 0) {
-            counts[curr_length]++;
-        }
-
+        for_each_fasta(name, [&counts](const FastaEntry& entry) {
+            counts[entry.sequence.length()]++;
+        });
     }
 
     return counts;

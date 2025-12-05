@@ -1,5 +1,6 @@
 #include "preprocess.hpp"
 #include "io/csv_format.hpp"
+#include "io/fasta_io.hpp"
 
 static inline std::string _PARSER_NAME = "preprocess";
 // File
@@ -8,7 +9,7 @@ static inline std::string _FILE_HELP = "The input .fasta file.";
 // Output
 static inline std::string _OUTPUT_NAME = "--output";
 static inline std::string _OUTPUT_HELP = "The output .csv file.";
-// Overwrite 
+// Overwrite
 static inline std::string _OVERWRITE_NAME = "--overwrite";
 static inline std::string _OVERWRITE_HELP = "Overwrite any existing file.";
 // Sublibrary
@@ -31,35 +32,16 @@ void _preprocess(
     bool overwrite,
     const std::string& sublibrary
 ) {
-
     _throw_if_not_exists(fasta);
     _remove_if_exists(csv, overwrite);
 
-    std::ifstream fasta_file(fasta);
     std::ofstream csv_file(csv);
-
-    std::string line;
-    std::string name;
-    std::string sequence;
-    bool write = false;
-
     csv_file << csv::header() << "\n";
-    while (std::getline(fasta_file, line)) {
-        if (_is_fasta_header(line)) {
-            if (write) {
-                csv_file << sequence;
-                csv_file << ",,,\n";
-                sequence = "";
-                write = false;
-            }
-            name = _get_fasta_name(line);
-            csv_file << _escape_with_quotes(name);
-            csv_file << "," << sublibrary << ",,,";
-        } else {
-            sequence += _get_fasta_seq(line);
-            write = true;
-        }
-    }
-    csv_file << sequence;
-    csv_file << ",,,\n";
+
+    for_each_fasta(fasta, [&](const FastaEntry& entry) {
+        csv_file << _escape_with_quotes(entry.name);
+        csv_file << "," << sublibrary << ",,,";
+        csv_file << entry.sequence;
+        csv_file << ",,,\n";
+    });
 }

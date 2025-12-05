@@ -37,35 +37,10 @@ FetchContent_Declare(
 FetchContent_MakeAvailable_If_Not_Already_Present(indicators)
 FetchContent_MakeAvailable_If_Not_Already_Present(argparse)
 
-add_executable(${PROJECT_NAME}
-    src/main.cpp
-    src/library.cpp
-    src/nuc.cpp
-    src/utils.cpp
-    src/preprocess.cpp
-    src/inspect.cpp
-    src/barcodes.cpp
-    src/m2.cpp
-    src/random.cpp
-    src/duplicate.cpp
-    src/totxt.cpp
-    src/test.cpp
-    src/categorize.cpp
-    src/sort.cpp
-    src/merge.cpp
-    src/pipeline.cpp
-    src/prepend.cpp
-    src/torna.cpp
-    src/config/stem_config.cpp
-    src/config/barcode_config.cpp
-    src/config/design_config.cpp
-    src/io/csv_format.cpp
-    src/io/progress.cpp
-    src/io/writers.cpp
-    src/domain/sequence.cpp
-    src/domain/hairpin.cpp
-    src/domain/barcode.cpp
-)
+# Collect all source files
+file(GLOB_RECURSE FLD_ALL_SOURCES CONFIGURE_DEPENDS "src/*.cpp")
+
+add_executable(${PROJECT_NAME} ${FLD_ALL_SOURCES})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     argparse
@@ -84,45 +59,15 @@ option(BUILD_TESTS "Build tests" ON)
 if(BUILD_TESTS)
     enable_testing()
 
-    # Collect source files (excluding main.cpp)
-    set(FLD_LIB_SOURCES
-        src/library.cpp
-        src/nuc.cpp
-        src/utils.cpp
-        src/preprocess.cpp
-        src/inspect.cpp
-        src/barcodes.cpp
-        src/m2.cpp
-        src/random.cpp
-        src/duplicate.cpp
-        src/totxt.cpp
-        src/categorize.cpp
-        src/sort.cpp
-        src/merge.cpp
-        src/pipeline.cpp
-        src/prepend.cpp
-        src/torna.cpp
-        src/config/stem_config.cpp
-        src/config/barcode_config.cpp
-        src/config/design_config.cpp
-        src/io/csv_format.cpp
-        src/io/progress.cpp
-        src/io/writers.cpp
-        src/domain/sequence.cpp
-        src/domain/hairpin.cpp
-        src/domain/barcode.cpp
-    )
+    # Library sources (all src/*.cpp except main.cpp)
+    list(FILTER FLD_ALL_SOURCES EXCLUDE REGEX ".*main\\.cpp$")
+    set(FLD_LIB_SOURCES ${FLD_ALL_SOURCES})
+
+    # Test sources
+    file(GLOB_RECURSE FLD_TEST_SOURCES CONFIGURE_DEPENDS "tests/*.cpp")
 
     add_executable(fld_tests
-        tests/test_main.cpp
-        tests/test_design.cpp
-        tests/test_preprocess.cpp
-        tests/test_sequence.cpp
-        tests/test_hairpin.cpp
-        tests/test_barcode.cpp
-        tests/test_csv_format.cpp
-        tests/test_prepend.cpp
-        tests/test_torna.cpp
+        ${FLD_TEST_SOURCES}
         ${FLD_LIB_SOURCES}
     )
 

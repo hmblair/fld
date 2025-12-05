@@ -33,10 +33,6 @@ std::string _escape_with_quotes(const std::string& original);
 // Escapes internal quotes by doubling them.
 std::string _quote_csv_field(const std::string& field);
 
-bool _is_fasta_header(const std::string& line);
-std::string _get_fasta_name(const std::string& line);
-std::string _get_fasta_seq(const std::string& line);
-
 double _percent(size_t val, size_t total);
 
 // Load a file containing one numeric value per line.

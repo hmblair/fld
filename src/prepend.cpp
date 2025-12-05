@@ -1,5 +1,5 @@
 #include "prepend.hpp"
-#include <fstream>
+#include "io/fasta_io.hpp"
 #include <iostream>
 
 static inline std::string _PARSER_NAME = "prepend";
@@ -22,24 +22,13 @@ void _prepend(
     _throw_if_not_exists(input_fasta);
     _remove_if_exists(output_fasta, overwrite);
 
-    std::ifstream in(input_fasta);
-    std::ofstream out(output_fasta);
-
-    std::string line;
+    FastaOutputStream out(output_fasta);
     size_t count = 0;
 
-    while (std::getline(in, line)) {
-        if (line.empty()) continue;
-
-        if (line[0] == '>') {
-            // Header line - pass through
-            out << line << "\n";
-        } else {
-            // Sequence line - prepend
-            out << prefix << line << "\n";
-            count++;
-        }
-    }
+    for_each_fasta(input_fasta, [&](const FastaEntry& entry) {
+        out.write(entry.name, prefix + entry.sequence);
+        count++;
+    });
 
     std::cout << "Prepended '" << prefix << "' to " << count << " sequences.\n";
     std::cout << "Output: " << output_fasta << "\n";

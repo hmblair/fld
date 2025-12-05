@@ -1,6 +1,5 @@
 #include "categorize.hpp"
-#include "nuc.hpp"
-#include <fstream>
+#include "io/fasta_io.hpp"
 #include <iostream>
 #include <map>
 #include <algorithm>
@@ -24,6 +23,15 @@ static size_t _find_bin(size_t length, const std::vector<int>& bins) {
         }
     }
     return bins.size() - 1;  // Put in largest bin if doesn't fit
+}
+
+static inline std::string to_dna(const std::string& seq) {
+    std::string result = seq;
+    for (char& c : result) {
+        if (c == 'U') c = 'T';
+        if (c == 'u') c = 't';
+    }
+    return result;
 }
 
 void _categorize(
@@ -55,43 +63,11 @@ void _categorize(
     }
 
     // Read input FASTA and categorize
-    std::ifstream in(input);
-    std::string line;
-    std::string current_header;
-    std::string current_seq;
-
-    while (std::getline(in, line)) {
-        if (line.empty()) continue;
-
-        if (_is_fasta_header(line)) {
-            // Write previous sequence if exists
-            if (!current_header.empty() && !current_seq.empty()) {
-                size_t bin_idx = _find_bin(current_seq.length(), sorted_bins);
-                // Convert U to T
-                std::string dna_seq = current_seq;
-                for (char& c : dna_seq) {
-                    if (c == 'U' || c == 'u') c = 'T';
-                }
-                out_files[bin_idx] << current_header << "\n" << dna_seq << "\n";
-                counts[bin_idx]++;
-            }
-            current_header = line;
-            current_seq.clear();
-        } else {
-            current_seq += line;
-        }
-    }
-
-    // Write last sequence
-    if (!current_header.empty() && !current_seq.empty()) {
-        size_t bin_idx = _find_bin(current_seq.length(), sorted_bins);
-        std::string dna_seq = current_seq;
-        for (char& c : dna_seq) {
-            if (c == 'U' || c == 'u') c = 'T';
-        }
-        out_files[bin_idx] << current_header << "\n" << dna_seq << "\n";
+    for_each_fasta(input, [&](const FastaEntry& entry) {
+        size_t bin_idx = _find_bin(entry.sequence.length(), sorted_bins);
+        out_files[bin_idx] << ">" << entry.name << "\n" << to_dna(entry.sequence) << "\n";
         counts[bin_idx]++;
-    }
+    });
 
     // Close files and report
     for (auto& [idx, file] : out_files) {

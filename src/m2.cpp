@@ -1,68 +1,70 @@
 #include "m2.hpp"
+#include "io/fasta_io.hpp"
 
 const std::vector<char> BASES = {'A', 'C', 'G', 'T'};
 
-static inline void _add_single_mutant_all(const std::string &header, const std::string& sequence, std::vector<std::string>& mutants, int pos) {
-
-        char original_base = sequence[pos];
-        for (const auto& mutant_base : BASES) {
-
-            if (mutant_base == original_base) {
-                continue;
-            }
-
-            std::string mutant = sequence;
-            mutant[pos] = mutant_base;
-
-            mutants.push_back(">" + header + "_mm_" + std::to_string(pos) + "_" + original_base + "_" + mutant_base);
-            mutants.push_back(mutant);
-
-        }
-
-
-}
-
-static inline void _add_single_mutant(const std::string &header, const std::string& sequence, std::vector<std::string>& mutants, int pos) {
-
-        char original_base, mutant_base;
-
-        original_base = sequence[pos];
-        try {
-            mutant_base = _complement(original_base);
-        } catch (const std::exception& e) {
-            return;
+static inline void _write_single_mutant_all(
+    FastaOutputStream& out,
+    const std::string& header,
+    const std::string& sequence,
+    int pos
+) {
+    char original_base = sequence[pos];
+    for (const auto& mutant_base : BASES) {
+        if (mutant_base == original_base) {
+            continue;
         }
 
         std::string mutant = sequence;
         mutant[pos] = mutant_base;
 
-        mutants.push_back(">" + header + "_mm_" + std::to_string(pos) + "_" + original_base + "_" + mutant_base);
-        mutants.push_back(mutant);
+        std::string name = header + "_mm_" + std::to_string(pos) + "_" + original_base + "_" + mutant_base;
+        out.write(name, mutant);
+    }
+}
 
+static inline void _write_single_mutant(
+    FastaOutputStream& out,
+    const std::string& header,
+    const std::string& sequence,
+    int pos
+) {
+    char original_base = sequence[pos];
+    char mutant_base;
+    try {
+        mutant_base = _complement(original_base);
+    } catch (const std::exception& e) {
+        return;
+    }
+
+    std::string mutant = sequence;
+    mutant[pos] = mutant_base;
+
+    std::string name = header + "_mm_" + std::to_string(pos) + "_" + original_base + "_" + mutant_base;
+    out.write(name, mutant);
 }
 
 
-static inline std::vector<std::string> _generate_single_mutants(const std::string &header, const std::string &sequence, bool all) {
+static inline void _write_single_mutants(
+    FastaOutputStream& out,
+    const std::string& header,
+    const std::string& sequence,
+    bool all
+) {
+    // Write wild type
+    out.write(header + "_wt", sequence);
 
-    std::vector<std::string> mutants;
+    // Write mutants
     size_t seq_len = sequence.length();
-
-    mutants.push_back(">" + header + "_wt");
-    mutants.push_back(sequence);
-
     if (all) {
         for (size_t i = 0; i < seq_len; i++) {
-            _add_single_mutant_all(header, sequence, mutants, i);
+            _write_single_mutant_all(out, header, sequence, i);
         }
     } else {
         for (size_t i = 0; i < seq_len; i++) {
-            _add_single_mutant(header, sequence, mutants, i);
+            _write_single_mutant(out, header, sequence, i);
         }
     }
-
-
-    return mutants;
-
 }
 
 void _m2(
@@ -71,47 +73,14 @@ void _m2(
     bool all,
     bool overwrite
 ) {
-
     _throw_if_not_exists(input);
     _remove_if_exists(output, overwrite);
 
-    std::ifstream infile(input);
-    std::ofstream outfile(output);
-    std::string line, current_header, current_sequence;
+    FastaOutputStream out(output);
 
-    while (std::getline(infile, line)) {
-
-        if (_is_fasta_header(line)) {
-
-            if (!current_sequence.empty()) {
-
-                std::vector<std::string> mutants = _generate_single_mutants(current_header, current_sequence, all);
-
-                for (const auto& str : mutants) {
-                    outfile << str << "\n";
-                }
-
-                current_sequence.clear();
-
-            }
-
-            current_header = _get_fasta_name(line);
-
-        } else {
-
-            current_sequence += line;
-
-        }
-
-    }
-
-    if (!current_sequence.empty()) {
-        std::vector<std::string> mutants = _generate_single_mutants(current_header, current_sequence, all);
-        for (const auto& str : mutants) {
-            outfile << str << "\n";
-        }
-    }
-
+    for_each_fasta(input, [&](const FastaEntry& entry) {
+        _write_single_mutants(out, entry.name, entry.sequence, all);
+    });
 }
 
 static inline std::string _PARSER_NAME = "m2";
@@ -134,4 +103,3 @@ M2Args::M2Args()
       output(_parser, _OUTPUT_NAME, _OUTPUT_HELP),
       all(_parser, _ALL_NAME, _ALL_HELP),
       overwrite(_parser, _OVERWRITE_NAME, _OVERWRITE_HELP) {}
-
