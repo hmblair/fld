@@ -16,6 +16,7 @@ SuperProgram::SuperProgram() : _parent(PROGRAM, VERSION) {
     _parent.add_subparser(pipeline._parser);
     _parent.add_subparser(prepend._parser);
     _parent.add_subparser(torna._parser);
+    _parent.add_subparser(diff._parser);
 };
 void SuperProgram::parse(int argc, char** argv) {
     _parent.parse_args(argc, argv);
@@ -81,6 +82,10 @@ bool SuperProgram::is_torna() const {
     return torna.used(_parent);
 }
 
+bool SuperProgram::is_diff() const {
+    return diff.used(_parent);
+}
+
 MODE SuperProgram::mode() const {
     if (is_design()) {
         return MODE::Design;
@@ -112,6 +117,8 @@ MODE SuperProgram::mode() const {
         return MODE::Prepend;
     } else if (is_torna()) {
         return MODE::ToRna;
+    } else if (is_diff()) {
+        return MODE::Diff;
     } else {
         throw std::runtime_error("Unknown subcommand.");
     }
@@ -321,6 +328,12 @@ int main(int argc, char** argv) {
                     opt.overwrite
                 );
                 break;
+            }
+
+            case MODE::Diff: {
+                DiffArgs& opt = parent.diff;
+                bool identical = _diff(opt.file1, opt.file2);
+                return identical ? EXIT_SUCCESS : EXIT_FAILURE;
             }
 
         }

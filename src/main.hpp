@@ -17,6 +17,7 @@
 #include "pipeline.hpp"
 #include "prepend.hpp"
 #include "torna.hpp"
+#include "diff.hpp"
 
 const auto PROGRAM = "fld";
 const auto VERSION = "0.2.0";
@@ -36,7 +37,8 @@ enum class MODE {
     Merge,
     Pipeline,
     Prepend,
-    ToRna
+    ToRna,
+    Diff
 };
 
 class SuperProgram {
@@ -61,6 +63,7 @@ public:
     PipelineArgs pipeline;
     PrependArgs prepend;
     ToRnaArgs torna;
+    DiffArgs diff;
 
     SuperProgram();
     void parse(int argc, char** argv);
@@ -79,6 +82,7 @@ public:
     bool is_pipeline() const;
     bool is_prepend() const;
     bool is_torna() const;
+    bool is_diff() const;
     MODE mode() const;
 
 };

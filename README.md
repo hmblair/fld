@@ -106,9 +106,11 @@ The same options that are available to `design` (`--max-au`, `--max-gc`, ...) ar
 
 The command
 ```
-fld inspect [--sort] file
+fld inspect [--sort] file1 [file2 ...]
 ```
-will list the length of all sequences in the given .fasta file. This can be useful when preprocessing as a sanity check. `--sort` will sort the results by count rather than sequence length.
+will list the length of all sequences in the given FASTA file(s). This can be useful when preprocessing as a sanity check. `--sort` will sort the results by count rather than sequence length.
+
+When multiple files are provided, per-file summaries are shown followed by a combined total (similar to `wc -l`).
 
 ## M2
 
@@ -134,7 +136,31 @@ The sequences in a FASTA file can be duplicated N times with the command
 ```
 fld duplicate --count N --output duplicates.fasta input.fasta
 ```
-The FASTA records will have "_x" appeneded to them for x from 0 to N-1.
+The FASTA records will have "_x" appended to them for x from 0 to N-1.
+
+## Prepend
+
+Prepend a sequence to all entries in a FASTA file:
+```
+fld prepend --sequence GGGAAA -o output.fasta input.fasta
+```
+This is useful for adding constant regions or adapters to sequences.
+
+## To-RNA
+
+Convert DNA sequences to RNA (T → U):
+```
+fld to-rna -o output.fasta input.fasta
+```
+Both uppercase and lowercase T are converted to U. Headers are preserved unchanged.
+
+## Diff
+
+Compare two FASTA files and list sequence indices where they differ:
+```
+fld diff file1.fasta file2.fasta
+```
+Reports all 1-indexed positions where sequences differ (ignoring headers). Returns exit code 0 if files are identical, 1 if they differ. Useful for verifying that transformations preserve sequence content.
 
 ## TXT
 
