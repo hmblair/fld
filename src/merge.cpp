@@ -9,13 +9,17 @@ static inline std::string _PARSER_NAME = "merge";
 
 MergeArgs::MergeArgs() : Program(_PARSER_NAME),
     library(_parser, "--library", "Input CSV library file (without barcodes)"),
-    library_reads(_parser, "--library-reads", "Text file with library read counts"),
-    barcodes(_parser, "--barcodes", "Text file with barcodes (one per line)"),
-    barcode_reads(_parser, "--barcode-reads", "Text file with barcode read counts"),
+    library_reads(_parser, "--library-reads", "Text file with predicted read counts (one per line)"),
+    barcodes(_parser, "--barcodes", "Text file with barcode sequences (one per line)"),
+    barcode_reads(_parser, "--barcode-reads", "Text file with predicted barcode read counts"),
     output(_parser, "-o", "Output prefix"),
     overwrite(_parser, "--overwrite", "Overwrite existing files", false)
 {
-    _parser.add_description("Merge barcodes into library using read-count balancing.");
+    _parser.add_description(
+        "Merge barcodes into library using read-count balancing.\n\n"
+        "Pairs low-read designs with high-read barcodes to balance coverage.\n"
+        "Read counts should be predicted using a tool like rn-coverage."
+    );
 }
 
 struct LibraryEntry {
@@ -133,7 +137,7 @@ void _merge(
     out_csv << header_line << ",design_reads,barcode_reads\n";
     for (const auto& entry : merged) {
         for (size_t i = 0; i < entry.fields.size(); i++) {
-            out_csv << entry.fields[i];
+            out_csv << _quote_csv_field(entry.fields[i]);
             if (i < entry.fields.size() - 1) out_csv << ",";
         }
         out_csv << "," << entry.design_reads

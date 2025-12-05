@@ -29,6 +29,10 @@ std::vector<std::string> _split_by_delimiter(
 
 std::string _escape_with_quotes(const std::string& original);
 
+// Quote a CSV field if it contains commas, quotes, or newlines.
+// Escapes internal quotes by doubling them.
+std::string _quote_csv_field(const std::string& field);
+
 bool _is_fasta_header(const std::string& line);
 std::string _get_fasta_name(const std::string& line);
 std::string _get_fasta_seq(const std::string& line);

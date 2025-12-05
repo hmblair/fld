@@ -3,6 +3,7 @@
 #include "preprocess.hpp"
 #include "library.hpp"
 #include "io/csv_format.hpp"
+#include "utils.hpp"
 #include <fstream>
 
 TEST_CASE("preprocess creates valid CSV from FASTA") {
@@ -110,4 +111,31 @@ TEST_CASE("preprocess converts U to T") {
 
     // The sequence should be in the design column (index 4)
     // But preprocess stores the raw sequence, conversion happens in design
+}
+
+TEST_CASE("preprocess handles commas in FASTA headers") {
+    TempDir tmpdir;
+    std::string fasta_path = tmpdir.path() + "/input.fasta";
+    std::string csv_path = tmpdir.path() + "/output.csv";
+
+    // Write FASTA with comma in header
+    std::string name_with_comma = "gene_name, species_info";
+    write_fasta(fasta_path, {{name_with_comma, "ACGTACGT"}});
+
+    _preprocess(fasta_path, csv_path, true, "test_lib");
+
+    // Read back and verify name is preserved correctly
+    std::ifstream file(csv_path);
+    std::string header, line;
+    std::getline(file, header);
+    std::getline(file, line);
+
+    // Parse using the quote-aware splitter
+    auto fields = _split_by_delimiter(line, ',');
+
+    // Should have correct number of fields (8 standard columns)
+    CHECK(fields.size() >= 8);
+
+    // First field should be the name with comma preserved
+    CHECK(fields[0] == name_with_comma);
 }

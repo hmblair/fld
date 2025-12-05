@@ -40,10 +40,16 @@ PipelineArgs::PipelineArgs() : Program(_PARSER_NAME),
     barcode_length(_parser, "--barcode-length", "Barcode stem length (0 to disable)", 10),
     no_barcodes(_parser, "--no-barcodes", "Skip barcode generation", false),
     m2(_parser, "--m2", "Generate M2-seq complement sequences", false),
-    predict(_parser, "--predict", "Run rn-coverage prediction and merge barcodes", false),
+    predict(_parser, "--predict", "Predict reads with rn-coverage, merge barcodes, and sort by final reads", false),
     batch_size(_parser, "--batch-size", "Batch size for rn-coverage prediction", 32)
 {
-    _parser.add_description("Run the complete library design pipeline.");
+    _parser.add_description(
+        "Run the complete library design pipeline.\n\n"
+        "Basic mode: preprocess, pad, and generate barcodes.\n"
+        "With --predict: also predict reads, merge barcodes with read balancing,\n"
+        "                predict final reads, and sort by predicted coverage.\n\n"
+        "Requires rn-coverage on PATH and RN_COV_CKPT set when using --predict."
+    );
 }
 
 // Run a shell command and return the exit code

@@ -78,6 +78,28 @@ std::string _escape_with_quotes(const std::string& original) {
     return "\"" + _remove_char(original, '\"') + "\"";
 }
 
+std::string _quote_csv_field(const std::string& field) {
+    bool needs_quoting = field.find(',') != std::string::npos ||
+                         field.find('"') != std::string::npos ||
+                         field.find('\n') != std::string::npos;
+    if (!needs_quoting) {
+        return field;
+    }
+    // Escape internal quotes by doubling them
+    std::string escaped;
+    escaped.reserve(field.size() + 2);
+    escaped += '"';
+    for (char c : field) {
+        if (c == '"') {
+            escaped += "\"\"";
+        } else {
+            escaped += c;
+        }
+    }
+    escaped += '"';
+    return escaped;
+}
+
 bool _is_fasta_header(const std::string& line) {
     return !line.empty() && line[0] == '>';
 }

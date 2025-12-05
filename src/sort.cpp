@@ -14,7 +14,11 @@ SortArgs::SortArgs() : Program(_PARSER_NAME),
     overwrite(_parser, "--overwrite", "Overwrite existing files", false),
     descending(_parser, "--descending", "Sort in descending order (highest reads first)", false)
 {
-    _parser.add_description("Sort a library CSV by predicted read counts.");
+    _parser.add_description(
+        "Sort a library CSV by predicted read counts.\n\n"
+        "Default order is ascending (lowest reads first).\n"
+        "A 'reads' column is appended to the output CSV."
+    );
 }
 
 struct IndexedConstruct {

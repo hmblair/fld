@@ -182,30 +182,85 @@ fld merge --library library.csv --library-reads lib_reads.txt \
           --barcodes barcodes.txt --barcode-reads bc_reads.txt \
           -o merged
 ```
-This pairs low-read designs with high-read barcodes to balance coverage across the library. The output includes `design_reads`, `barcode_reads`, and `total_reads` columns.
+This pairs low-read designs with high-read barcodes to balance coverage across the library. The algorithm:
+1. Sorts library entries by predicted reads (ascending)
+2. Sorts barcodes by predicted reads (descending)
+3. Pairs them in order, so low-read designs get high-read barcodes
+
+The output CSV includes `design_reads` and `barcode_reads` columns for reference.
 
 ## Pipeline
 
-Run the complete library design pipeline:
+The pipeline command orchestrates the complete library design workflow:
+
 ```
 fld pipeline -o OUTPUT-DIR --pad-to 130 --barcode-length 10 *.fasta
 ```
 
-This command:
-1. Takes one or more FASTA files as input
+### Basic Pipeline (without `--predict`)
+
+When run without the `--predict` flag, the pipeline:
+1. Preprocesses all input FASTA files
 2. Optionally generates M2-seq complements (`--m2`)
-3. Preprocesses all sequences
-4. Runs `fld design` with the specified padding
-5. Generates barcodes
+3. Pads sequences to the target length with hairpin structures
+4. Generates unique barcodes (unless `--no-barcodes`)
 
-After running the pipeline, you can use a read prediction tool on the output files, then run `fld merge` to pair barcodes with designs based on predicted read counts.
+Output files are placed in `OUTPUT-DIR/tmp/`:
+- `library.csv`, `library.fasta`, `library.txt` - the designed library (without barcodes merged)
+- `barcodes.txt` - the generated barcode sequences
 
-Available options:
-* `--pad-to`: Target sequence length (default: 130)
-* `--barcode-length`: Barcode stem length, 0 to disable (default: 10)
-* `--no-barcodes`: Skip barcode generation entirely
-* `--m2`: Generate M2-seq complement sequences
-* All stem configuration options (`--max-gc`, `--max-gu`, etc.)
+The command prints instructions for manually running read prediction and `fld merge`.
+
+### Full Pipeline (with `--predict`)
+
+When run with the `--predict` flag, the pipeline additionally performs read-count prediction and barcode merging:
+
+```
+fld pipeline -o OUTPUT-DIR --pad-to 130 --barcode-length 10 --predict *.fasta
+```
+
+**Prerequisites:**
+- `rn-coverage` must be installed and on your PATH
+- The `RN_COV_CKPT` environment variable must point to the model checkpoint
+
+**Steps performed:**
+1. Preprocess all input FASTA files
+2. Optionally generate M2-seq complements (`--m2`)
+3. Pad sequences to target length with hairpin structures
+4. Generate unique barcodes
+5. **Predict read counts** for library sequences using `rn-coverage`
+6. **Predict read counts** for barcodes using `rn-coverage`
+7. **Merge** barcodes into library with read-count balancing (low-read designs paired with high-read barcodes)
+8. **Predict read counts** for the full merged sequences
+9. **Sort** final library by predicted read counts
+
+The final output in `OUTPUT-DIR/`:
+- `library.csv` - final library sorted by predicted reads, with columns for design_reads, barcode_reads, and reads (final prediction)
+- `library.fasta` - sequences in FASTA format
+- `library.txt` - plain sequences (one per line)
+
+Intermediate files are preserved in `OUTPUT-DIR/tmp/` for debugging.
+
+### Pipeline Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `-o` | (required) | Output directory |
+| `--pad-to` | 130 | Target sequence length |
+| `--barcode-length` | 10 | Barcode stem length (0 to disable) |
+| `--no-barcodes` | false | Skip barcode generation entirely |
+| `--m2` | false | Generate M2-seq complement sequences |
+| `--predict` | false | Run rn-coverage prediction and merge |
+| `--batch-size` | 32 | Batch size for rn-coverage prediction |
+| `--overwrite` | false | Overwrite existing output directory |
+| `--five-const` | ACTCGAGTAGAGTCGAAAA | 5' constant sequence |
+| `--three-const` | AAAAGAAACAACAACAACAAC | 3' constant sequence |
+| `--min-stem-length` | 7 | Minimum hairpin stem length |
+| `--max-stem-length` | 13 | Maximum hairpin stem length |
+| `--max-gc` | 5 | Maximum GC pairs per stem |
+| `--max-gu` | 0 | Maximum GU pairs per stem |
+| `--closing-gc` | 1 | GC pairs to close each stem |
+| `--spacer` | 2 | PolyA spacer between stems |
 
 # Operations
 
