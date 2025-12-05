@@ -54,6 +54,8 @@ add_executable(${PROJECT_NAME}
     src/sort.cpp
     src/merge.cpp
     src/pipeline.cpp
+    src/prepend.cpp
+    src/torna.cpp
     src/config/stem_config.cpp
     src/config/barcode_config.cpp
     src/config/design_config.cpp
@@ -98,6 +100,8 @@ if(BUILD_TESTS)
         src/sort.cpp
         src/merge.cpp
         src/pipeline.cpp
+        src/prepend.cpp
+        src/torna.cpp
         src/config/stem_config.cpp
         src/config/barcode_config.cpp
         src/config/design_config.cpp
@@ -117,6 +121,8 @@ if(BUILD_TESTS)
         tests/test_hairpin.cpp
         tests/test_barcode.cpp
         tests/test_csv_format.cpp
+        tests/test_prepend.cpp
+        tests/test_torna.cpp
         ${FLD_LIB_SOURCES}
     )
 

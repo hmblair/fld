@@ -15,6 +15,8 @@
 #include "sort.hpp"
 #include "merge.hpp"
 #include "pipeline.hpp"
+#include "prepend.hpp"
+#include "torna.hpp"
 
 const auto PROGRAM = "fld";
 const auto VERSION = "0.2.0";
@@ -32,7 +34,9 @@ enum class MODE {
     Categorize,
     Sort,
     Merge,
-    Pipeline
+    Pipeline,
+    Prepend,
+    ToRna
 };
 
 class SuperProgram {
@@ -55,6 +59,8 @@ public:
     SortArgs sort;
     MergeArgs merge;
     PipelineArgs pipeline;
+    PrependArgs prepend;
+    ToRnaArgs torna;
 
     SuperProgram();
     void parse(int argc, char** argv);
@@ -71,6 +77,8 @@ public:
     bool is_sort() const;
     bool is_merge() const;
     bool is_pipeline() const;
+    bool is_prepend() const;
+    bool is_torna() const;
     MODE mode() const;
 
 };

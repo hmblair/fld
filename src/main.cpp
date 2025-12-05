@@ -14,6 +14,8 @@ SuperProgram::SuperProgram() : _parent(PROGRAM, VERSION) {
     _parent.add_subparser(sort._parser);
     _parent.add_subparser(merge._parser);
     _parent.add_subparser(pipeline._parser);
+    _parent.add_subparser(prepend._parser);
+    _parent.add_subparser(torna._parser);
 };
 void SuperProgram::parse(int argc, char** argv) {
     _parent.parse_args(argc, argv);
@@ -71,6 +73,14 @@ bool SuperProgram::is_pipeline() const {
     return pipeline.used(_parent);
 }
 
+bool SuperProgram::is_prepend() const {
+    return prepend.used(_parent);
+}
+
+bool SuperProgram::is_torna() const {
+    return torna.used(_parent);
+}
+
 MODE SuperProgram::mode() const {
     if (is_design()) {
         return MODE::Design;
@@ -98,6 +108,10 @@ MODE SuperProgram::mode() const {
         return MODE::Merge;
     } else if (is_pipeline()) {
         return MODE::Pipeline;
+    } else if (is_prepend()) {
+        return MODE::Prepend;
+    } else if (is_torna()) {
+        return MODE::ToRna;
     } else {
         throw std::runtime_error("Unknown subcommand.");
     }
@@ -285,6 +299,27 @@ int main(int argc, char** argv) {
                 config.predict = opt.predict;
                 config.batch_size = opt.batch_size;
                 _pipeline(config);
+                break;
+            }
+
+            case MODE::Prepend: {
+                PrependArgs& opt = parent.prepend;
+                _prepend(
+                    opt.file,
+                    opt.output,
+                    opt.sequence,
+                    opt.overwrite
+                );
+                break;
+            }
+
+            case MODE::ToRna: {
+                ToRnaArgs& opt = parent.torna;
+                _to_rna(
+                    opt.file,
+                    opt.output,
+                    opt.overwrite
+                );
                 break;
             }
 
