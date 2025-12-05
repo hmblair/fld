@@ -23,22 +23,22 @@ MergeArgs::MergeArgs() : Program(_PARSER_NAME),
 }
 
 struct LibraryEntry {
-    size_t original_index;
-    double reads;
+    size_t original_index = 0;
+    double reads = 0.0;
     std::vector<std::string> fields;
 };
 
 struct BarcodeEntry {
-    size_t original_index;
-    double reads;
+    size_t original_index = 0;
+    double reads = 0.0;
     std::string barcode;
 };
 
 struct MergedEntry {
     std::vector<std::string> fields;
     std::string barcode;
-    double design_reads;
-    double barcode_reads;
+    double design_reads = 0.0;
+    double barcode_reads = 0.0;
 };
 
 void _merge(
