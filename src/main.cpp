@@ -16,6 +16,7 @@ SuperProgram::SuperProgram() : _parent(PROGRAM, VERSION) {
     _parent.add_subparser(pipeline._parser);
     _parent.add_subparser(prepend._parser);
     _parent.add_subparser(torna._parser);
+    _parent.add_subparser(todna._parser);
     _parent.add_subparser(diff._parser);
 };
 void SuperProgram::parse(int argc, char** argv) {
@@ -82,6 +83,10 @@ bool SuperProgram::is_torna() const {
     return torna.used(_parent);
 }
 
+bool SuperProgram::is_todna() const {
+    return todna.used(_parent);
+}
+
 bool SuperProgram::is_diff() const {
     return diff.used(_parent);
 }
@@ -117,6 +122,8 @@ MODE SuperProgram::mode() const {
         return MODE::Prepend;
     } else if (is_torna()) {
         return MODE::ToRna;
+    } else if (is_todna()) {
+        return MODE::ToDna;
     } else if (is_diff()) {
         return MODE::Diff;
     } else {
@@ -323,6 +330,16 @@ int main(int argc, char** argv) {
             case MODE::ToRna: {
                 ToRnaArgs& opt = parent.torna;
                 _to_rna(
+                    opt.file,
+                    opt.output,
+                    opt.overwrite
+                );
+                break;
+            }
+
+            case MODE::ToDna: {
+                ToDnaArgs& opt = parent.todna;
+                _to_dna(
                     opt.file,
                     opt.output,
                     opt.overwrite

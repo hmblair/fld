@@ -154,6 +154,14 @@ fld to-rna -o output.fasta input.fasta
 ```
 Both uppercase and lowercase T are converted to U. Headers are preserved unchanged.
 
+## To-DNA
+
+Convert RNA sequences to DNA (U → T):
+```
+fld to-dna -o output.fasta input.fasta
+```
+Both uppercase and lowercase U are converted to T. Headers are preserved unchanged.
+
 ## Diff
 
 Compare two FASTA files and list sequence indices where they differ:

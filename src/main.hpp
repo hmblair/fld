@@ -17,6 +17,7 @@
 #include "pipeline.hpp"
 #include "prepend.hpp"
 #include "torna.hpp"
+#include "todna.hpp"
 #include "diff.hpp"
 
 const auto PROGRAM = "fld";
@@ -38,6 +39,7 @@ enum class MODE {
     Pipeline,
     Prepend,
     ToRna,
+    ToDna,
     Diff
 };
 
@@ -63,6 +65,7 @@ public:
     PipelineArgs pipeline;
     PrependArgs prepend;
     ToRnaArgs torna;
+    ToDnaArgs todna;
     DiffArgs diff;
 
     SuperProgram();
@@ -82,6 +85,7 @@ public:
     bool is_pipeline() const;
     bool is_prepend() const;
     bool is_torna() const;
+    bool is_todna() const;
     bool is_diff() const;
     MODE mode() const;
 
