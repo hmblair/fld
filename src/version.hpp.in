@@ -1,0 +1,12 @@
+#ifndef VERSION_HPP
+#define VERSION_HPP
+
+// Auto-generated version header from git tags
+// Do not edit manually - regenerated on each build
+
+#define FLD_VERSION_MAJOR @FLD_VERSION_MAJOR@
+#define FLD_VERSION_MINOR @FLD_VERSION_MINOR@
+#define FLD_VERSION_PATCH @FLD_VERSION_PATCH@
+#define FLD_VERSION "@FLD_VERSION@"
+
+#endif

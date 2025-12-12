@@ -19,9 +19,10 @@
 #include "torna.hpp"
 #include "todna.hpp"
 #include "diff.hpp"
+#include "version.hpp"
 
 const auto PROGRAM = "fld";
-const auto VERSION = "0.2.0";
+const auto VERSION = FLD_VERSION;
 
 enum class MODE {
     Design,

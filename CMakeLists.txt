@@ -1,6 +1,51 @@
 cmake_minimum_required(VERSION 3.29)
 project(fld CXX)
 
+# Get version from git tags (similar to setuptools_scm)
+# Produces: "0.2.0" on tag, "0.2.0.dev3+gabcdef" after tag
+execute_process(
+    COMMAND git describe --tags --always
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_DESCRIBE
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+    RESULT_VARIABLE GIT_DESCRIBE_RESULT
+)
+
+if(GIT_DESCRIBE_RESULT EQUAL 0 AND GIT_DESCRIBE MATCHES "^v?([0-9]+)\\.([0-9]+)\\.([0-9]+)(-([0-9]+)-g([a-f0-9]+))?$")
+    set(FLD_VERSION_MAJOR ${CMAKE_MATCH_1})
+    set(FLD_VERSION_MINOR ${CMAKE_MATCH_2})
+    set(FLD_VERSION_PATCH ${CMAKE_MATCH_3})
+    if(CMAKE_MATCH_5)
+        # Dev version: commits after tag
+        set(FLD_VERSION "${FLD_VERSION_MAJOR}.${FLD_VERSION_MINOR}.${FLD_VERSION_PATCH}.dev${CMAKE_MATCH_5}+g${CMAKE_MATCH_6}")
+        set(FLD_VERSION_DEV ${CMAKE_MATCH_5})
+        set(FLD_VERSION_COMMIT ${CMAKE_MATCH_6})
+    else()
+        # Release version: exactly on tag
+        set(FLD_VERSION "${FLD_VERSION_MAJOR}.${FLD_VERSION_MINOR}.${FLD_VERSION_PATCH}")
+        set(FLD_VERSION_DEV "")
+        set(FLD_VERSION_COMMIT "")
+    endif()
+else()
+    # Fallback when no tags exist
+    set(FLD_VERSION "0.0.0+unknown")
+    set(FLD_VERSION_MAJOR 0)
+    set(FLD_VERSION_MINOR 0)
+    set(FLD_VERSION_PATCH 0)
+    set(FLD_VERSION_DEV "")
+    set(FLD_VERSION_COMMIT "")
+endif()
+
+message(STATUS "FLD Version: ${FLD_VERSION}")
+
+# Generate version header
+configure_file(
+    "${CMAKE_SOURCE_DIR}/src/version.hpp.in"
+    "${CMAKE_BINARY_DIR}/generated/version.hpp"
+    @ONLY
+)
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -42,6 +87,10 @@ file(GLOB_RECURSE FLD_ALL_SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 
 add_executable(${PROJECT_NAME} ${FLD_ALL_SOURCES})
 
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${CMAKE_BINARY_DIR}/generated
+)
+
 target_link_libraries(${PROJECT_NAME} PRIVATE
     argparse
     indicators
@@ -74,6 +123,7 @@ if(BUILD_TESTS)
     target_include_directories(fld_tests PRIVATE
         ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_SOURCE_DIR}/tests
+        ${CMAKE_BINARY_DIR}/generated
     )
 
     target_link_libraries(fld_tests PRIVATE
