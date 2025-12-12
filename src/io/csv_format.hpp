@@ -4,7 +4,7 @@
  *
  * Defines the column structure for library CSV files:
  *
- *   name,sublibrary,five_const,five_padding,design,three_padding,barcode,three_const
+ *   index,name,sublibrary,five_const,five_padding,design,three_padding,barcode,three_const
  *
  * Each row represents a single construct. Empty fields are allowed for
  * columns that haven't been filled yet (e.g., barcode before barcoding).
@@ -25,15 +25,16 @@ namespace csv {
  * CSV fields to ensure code remains correct if the format changes.
  */
 enum Column {
-    NAME = 0,           ///< Sequence identifier
-    SUBLIBRARY = 1,     ///< Sublibrary grouping
-    FIVE_CONST = 2,     ///< 5' constant/primer region
-    FIVE_PADDING = 3,   ///< 5' padding hairpins
-    DESIGN = 4,         ///< The design sequence of interest
-    THREE_PADDING = 5,  ///< 3' padding hairpins
-    BARCODE = 6,        ///< Barcode hairpin for identification
-    THREE_CONST = 7,    ///< 3' constant/primer region
-    COUNT = 8           ///< Total number of columns
+    INDEX = 0,          ///< 1-based index in original input file
+    NAME = 1,           ///< Sequence identifier
+    SUBLIBRARY = 2,     ///< Sublibrary grouping
+    FIVE_CONST = 3,     ///< 5' constant/primer region
+    FIVE_PADDING = 4,   ///< 5' padding hairpins
+    DESIGN = 5,         ///< The design sequence of interest
+    THREE_PADDING = 6,  ///< 3' padding hairpins
+    BARCODE = 7,        ///< Barcode hairpin for identification
+    THREE_CONST = 8,    ///< 3' constant/primer region
+    COUNT = 9           ///< Total number of columns
 };
 
 /// Get the list of column names.

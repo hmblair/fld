@@ -24,7 +24,9 @@ static inline Construct _from_record(const std::string& record) {
         throw std::runtime_error("CSV record has " + std::to_string(columns.size()) +
             " columns, expected " + std::to_string(csv::COUNT));
     }
+    size_t index = std::stoull(columns[csv::INDEX]);
     return Construct(
+        index,
         columns[csv::NAME],
         columns[csv::SUBLIBRARY],
         columns[csv::FIVE_CONST],
@@ -57,6 +59,7 @@ Library _from_csv(const std::string& filename) {
 }
 
 Construct::Construct(
+    size_t index,
     std::string name,
     std::string sublibrary,
     std::string fivep_const,
@@ -65,7 +68,8 @@ Construct::Construct(
     std::string threep_padding,
     std::string barcode,
     std::string threep_const
-) : _name(name),
+) : _index(index),
+    _name(name),
     _sublibrary(sublibrary),
     _fivep_const(fivep_const),
     _fivep_padding(fivep_padding),
@@ -87,6 +91,7 @@ std::string Construct::str() const {
 
 std::string Construct::csv_record() const {
     return(
+        std::to_string(_index) + "," +
         _escape_with_quotes(_name) + "," +
         _escape_with_quotes(_sublibrary) + "," +
         _fivep_const + "," +
@@ -96,6 +101,10 @@ std::string Construct::csv_record() const {
         _barcode + "," +
         _threep_const
     );
+}
+
+size_t Construct::index() const {
+    return _index;
 }
 
 std::string Construct::name() const {

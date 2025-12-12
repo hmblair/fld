@@ -38,8 +38,11 @@ void _preprocess(
     std::ofstream csv_file(csv);
     csv_file << csv::header() << "\n";
 
+    size_t index = 0;
     for_each_fasta(fasta, [&](const FastaEntry& entry) {
-        csv_file << _escape_with_quotes(entry.name);
+        index++;  // 1-based indexing
+        csv_file << index;
+        csv_file << "," << _escape_with_quotes(entry.name);
         csv_file << "," << sublibrary << ",,,";
         csv_file << entry.sequence;
         csv_file << ",,,\n";

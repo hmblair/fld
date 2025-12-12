@@ -3,6 +3,7 @@
 namespace csv {
 
 static const std::vector<std::string> _columns = {
+    "index",
     "name",
     "sublibrary",
     "five_const",

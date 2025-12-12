@@ -11,6 +11,7 @@ public:
     Arg<std::string> barcode_reads;
     Arg<std::string> output;
     Arg<bool> overwrite;
+    Arg<bool> sort_by_reads;
     MergeArgs();
 };
 
@@ -20,7 +21,8 @@ void _merge(
     const std::string& barcodes_file,
     const std::string& barcode_reads_file,
     const std::string& output_prefix,
-    bool overwrite
+    bool overwrite,
+    bool sort_by_reads = false
 );
 
 #endif

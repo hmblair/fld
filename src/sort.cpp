@@ -12,17 +12,20 @@ SortArgs::SortArgs() : Program(_PARSER_NAME),
     reads(_parser, "--reads", "Text file with read counts (one per line, same order as CSV)"),
     output(_parser, "-o", "Output prefix"),
     overwrite(_parser, "--overwrite", "Overwrite existing files", false),
-    descending(_parser, "--descending", "Sort in descending order (highest reads first)", false)
+    descending(_parser, "--descending", "Sort in descending order (highest reads first)", false),
+    sort_by_reads(_parser, "--sort-by-reads", "Sort output by read counts (default: preserve input order)", false)
 {
     _parser.add_description(
         "Sort a library CSV by predicted read counts.\n\n"
-        "Default order is ascending (lowest reads first).\n"
+        "Default order preserves input order (by sublibrary and index).\n"
+        "Use --sort-by-reads to sort by read counts instead.\n"
         "A 'reads' column is appended to the output CSV."
     );
 }
 
 struct IndexedConstruct {
-    size_t index;
+    size_t original_index;  // 1-based index from CSV
+    std::string sublibrary;
     double reads;
     std::string line;
 };
@@ -32,7 +35,8 @@ void _sort(
     const std::string& reads_file,
     const std::string& output_prefix,
     bool overwrite,
-    bool descending
+    bool descending,
+    bool sort_by_reads
 ) {
     _throw_if_not_exists(csv_file);
     _throw_if_not_exists(reads_file);
@@ -59,14 +63,17 @@ void _sort(
     // Load reads using shared utility
     std::vector<double> reads = _load_reads(reads_file, lines.size());
 
-    // Create indexed pairs
+    // Create indexed pairs - extract original_index and sublibrary from CSV
     std::vector<IndexedConstruct> indexed;
     indexed.reserve(lines.size());
     for (size_t i = 0; i < lines.size(); i++) {
-        indexed.push_back({i, reads[i], lines[i]});
+        auto fields = _split_by_delimiter(lines[i], ',');
+        size_t orig_idx = (fields.size() > csv::INDEX) ? std::stoull(fields[csv::INDEX]) : 0;
+        std::string sublib = (fields.size() > csv::SUBLIBRARY) ? fields[csv::SUBLIBRARY] : "";
+        indexed.push_back({orig_idx, sublib, reads[i], lines[i]});
     }
 
-    // Sort by reads
+    // Sort by reads (internal operation always happens)
     if (descending) {
         std::sort(indexed.begin(), indexed.end(),
             [](const IndexedConstruct& a, const IndexedConstruct& b) {
@@ -76,6 +83,17 @@ void _sort(
         std::sort(indexed.begin(), indexed.end(),
             [](const IndexedConstruct& a, const IndexedConstruct& b) {
                 return a.reads < b.reads;
+            });
+    }
+
+    // If not sorting by reads, re-sort by (sublibrary, original_index) for output
+    if (!sort_by_reads) {
+        std::sort(indexed.begin(), indexed.end(),
+            [](const IndexedConstruct& a, const IndexedConstruct& b) {
+                if (a.sublibrary != b.sublibrary) {
+                    return a.sublibrary < b.sublibrary;
+                }
+                return a.original_index < b.original_index;
             });
     }
 

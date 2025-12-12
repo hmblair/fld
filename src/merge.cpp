@@ -13,17 +13,21 @@ MergeArgs::MergeArgs() : Program(_PARSER_NAME),
     barcodes(_parser, "--barcodes", "Text file with barcode sequences (one per line)"),
     barcode_reads(_parser, "--barcode-reads", "Text file with predicted barcode read counts"),
     output(_parser, "-o", "Output prefix"),
-    overwrite(_parser, "--overwrite", "Overwrite existing files", false)
+    overwrite(_parser, "--overwrite", "Overwrite existing files", false),
+    sort_by_reads(_parser, "--sort-by-reads", "Sort output by read counts (default: preserve input order)", false)
 {
     _parser.add_description(
         "Merge barcodes into library using read-count balancing.\n\n"
         "Pairs low-read designs with high-read barcodes to balance coverage.\n"
-        "Read counts should be predicted using a tool like rn-coverage."
+        "Read counts should be predicted using a tool like rn-coverage.\n"
+        "Default output order preserves input order (by sublibrary and index).\n"
+        "Use --sort-by-reads to sort by read counts instead."
     );
 }
 
 struct LibraryEntry {
-    size_t original_index = 0;
+    size_t original_index = 0;  // 1-based index from CSV
+    std::string sublibrary;
     double reads = 0.0;
     std::vector<std::string> fields;
 };
@@ -35,6 +39,8 @@ struct BarcodeEntry {
 };
 
 struct MergedEntry {
+    size_t original_index = 0;  // 1-based index from CSV
+    std::string sublibrary;
     std::vector<std::string> fields;
     std::string barcode;
     double design_reads = 0.0;
@@ -47,7 +53,8 @@ void _merge(
     const std::string& barcodes_file,
     const std::string& barcode_reads_file,
     const std::string& output_prefix,
-    bool overwrite
+    bool overwrite,
+    bool sort_by_reads
 ) {
     _throw_if_not_exists(library_csv);
     _throw_if_not_exists(library_reads_file);
@@ -66,12 +73,17 @@ void _merge(
 
     std::vector<LibraryEntry> library_entries;
     std::string line;
-    size_t idx = 0;
     while (std::getline(in, line)) {
         if (line.empty()) continue;
         LibraryEntry entry;
-        entry.original_index = idx++;
         entry.fields = _split_by_delimiter(line, ',');
+        // Parse original_index and sublibrary from CSV
+        if (entry.fields.size() > csv::INDEX) {
+            entry.original_index = std::stoull(entry.fields[csv::INDEX]);
+        }
+        if (entry.fields.size() > csv::SUBLIBRARY) {
+            entry.sublibrary = entry.fields[csv::SUBLIBRARY];
+        }
         library_entries.push_back(entry);
     }
     in.close();
@@ -118,6 +130,8 @@ void _merge(
     std::vector<MergedEntry> merged;
     for (size_t i = 0; i < library_entries.size(); i++) {
         MergedEntry entry;
+        entry.original_index = library_entries[i].original_index;
+        entry.sublibrary = library_entries[i].sublibrary;
         entry.fields = library_entries[i].fields;
         entry.barcode = barcode_entries[i].barcode;
         entry.design_reads = library_entries[i].reads;
@@ -129,6 +143,17 @@ void _merge(
         }
 
         merged.push_back(entry);
+    }
+
+    // If not sorting by reads, re-sort by (sublibrary, original_index) for output
+    if (!sort_by_reads) {
+        std::sort(merged.begin(), merged.end(),
+            [](const MergedEntry& a, const MergedEntry& b) {
+                if (a.sublibrary != b.sublibrary) {
+                    return a.sublibrary < b.sublibrary;
+                }
+                return a.original_index < b.original_index;
+            });
     }
 
     // Write output CSV with extra columns

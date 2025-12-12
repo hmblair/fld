@@ -71,7 +71,7 @@ TEST_CASE("preprocess handles sublibrary parameter") {
     std::getline(file, header);
     std::getline(file, line);
 
-    // The sublibrary should be in the second column
+    // The sublibrary should be in the third column (index=0, name=1, sublibrary=2)
     // Parse the line
     std::vector<std::string> parts;
     std::string current;
@@ -88,8 +88,8 @@ TEST_CASE("preprocess handles sublibrary parameter") {
     }
     parts.push_back(current);
 
-    CHECK(parts.size() >= 2);
-    CHECK(parts[1] == "my_sublibrary");
+    CHECK(parts.size() >= 3);
+    CHECK(parts[csv::SUBLIBRARY] == "my_sublibrary");
 }
 
 TEST_CASE("preprocess converts U to T") {
@@ -133,9 +133,9 @@ TEST_CASE("preprocess handles commas in FASTA headers") {
     // Parse using the quote-aware splitter
     auto fields = _split_by_delimiter(line, ',');
 
-    // Should have correct number of fields (8 standard columns)
-    CHECK(fields.size() >= 8);
+    // Should have correct number of fields (9 standard columns)
+    CHECK(fields.size() >= 9);
 
-    // First field should be the name with comma preserved
-    CHECK(fields[0] == name_with_comma);
+    // Name field (index 1) should have the name with comma preserved
+    CHECK(fields[csv::NAME] == name_with_comma);
 }

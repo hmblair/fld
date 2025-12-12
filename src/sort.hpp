@@ -10,6 +10,7 @@ public:
     Arg<std::string> output;
     Arg<bool> overwrite;
     Arg<bool> descending;
+    Arg<bool> sort_by_reads;
     SortArgs();
 };
 
@@ -18,7 +19,8 @@ void _sort(
     const std::string& reads_file,
     const std::string& output_prefix,
     bool overwrite,
-    bool descending
+    bool descending,
+    bool sort_by_reads = false
 );
 
 #endif

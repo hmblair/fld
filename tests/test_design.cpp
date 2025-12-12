@@ -51,7 +51,7 @@ TEST_CASE("design produces sequences of correct padded length") {
     size_t count = 0;
     while (std::getline(file, line)) {
         // Parse the CSV line to extract all sequence parts
-        // Columns: name,sublibrary,five_const,five_padding,design,three_padding,barcode,three_const
+        // Columns: index,name,sublibrary,five_const,five_padding,design,three_padding,barcode,three_const
         std::vector<std::string> parts;
         std::string current;
         bool in_quotes = false;
@@ -68,11 +68,12 @@ TEST_CASE("design produces sequences of correct padded length") {
         }
         parts.push_back(current);
 
-        if (parts.size() >= 8) {
+        if (parts.size() >= 9) {
             // Calculate total length: five_const + five_padding + design + three_padding + barcode + three_const
-            size_t total_length = parts[2].length() + parts[3].length() +
-                                  parts[4].length() + parts[5].length() +
-                                  parts[6].length() + parts[7].length();
+            // Columns: index,name,sublibrary,five_const,five_padding,design,three_padding,barcode,three_const
+            size_t total_length = parts[3].length() + parts[4].length() +
+                                  parts[5].length() + parts[6].length() +
+                                  parts[7].length() + parts[8].length();
 
             INFO("Sequence " << count << ": total_length = " << total_length);
             CHECK(total_length == expected);
@@ -130,8 +131,9 @@ TEST_CASE("design with barcoding produces unique barcodes") {
         }
         parts.push_back(current);
 
-        if (parts.size() >= 7) {
-            std::string barcode = parts[6];
+        if (parts.size() >= 8) {
+            // Columns: index,name,sublibrary,five_const,five_padding,design,three_padding,barcode,three_const
+            std::string barcode = parts[7];
             INFO("Barcode: " << barcode);
             CHECK(!barcode.empty());
 

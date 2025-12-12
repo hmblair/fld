@@ -54,6 +54,7 @@ public:
 class Construct {
 public:
     Construct(
+        size_t index,
         std::string name,
         std::string sublibrary,
         std::string fivep_const,
@@ -108,6 +109,9 @@ public:
     /// Get the barcode sequence.
     std::string barcode() const;
 
+    /// Get the original 1-based index in the input file.
+    size_t index() const;
+
     /// Remove the barcode from this construct.
     void remove_barcode();
 
@@ -115,6 +119,7 @@ public:
     void remove_padding();
 
 private:
+    size_t _index;
     std::string _name;
     std::string _sublibrary;
     std::string _fivep_const;

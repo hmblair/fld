@@ -46,8 +46,11 @@ If you get an error telling you there are not enough barcodes, then you should b
 
 To run `fld` manually on a set of designs, you will need to place your designs in a `.csv` file with the (exact) following columns:
 ```
-name,sublibrary,five_const,five_padding,design,three_padding,barcode,three_const
+index,name,sublibrary,five_const,five_padding,design,three_padding,barcode,three_const
 ```
+
+The `index` column contains a 1-based index that tracks each sequence's position in its original input file. When processing multiple FASTA files, the index restarts at 1 for each file. The combination of `(sublibrary, index)` uniquely identifies each sequence, making it easy to trace sequences back to their original source even after sorting or merging operations.
+
 If there are no existing library elements for the input designs, then you only need to fill in the name and design columns. This can be achieved with the `preprocess` subcommand:
 ```
 fld preprocess --output library.csv [--sublibrary S] designs.fasta
@@ -202,11 +205,13 @@ Sequences are placed in the smallest bin they fit in. The default bins are 130, 
 
 ## Sort
 
-Sort a library CSV by predicted read counts:
+Add predicted read counts to a library CSV:
 ```
 fld sort --reads reads.txt -o sorted input.csv
 ```
-The reads file should contain one read count per line, in the same order as the CSV rows. Use `--descending` to sort highest reads first.
+The reads file should contain one read count per line, in the same order as the CSV rows.
+
+By default, the output preserves the original input order (sorted by sublibrary, then index). Use `--sort-by-reads` to sort by predicted read counts instead, and `--descending` to sort highest reads first.
 
 ## Merge
 
@@ -222,6 +227,8 @@ This pairs low-read designs with high-read barcodes to balance coverage across t
 3. Pairs them in order, so low-read designs get high-read barcodes
 
 The output CSV includes `design_reads` and `barcode_reads` columns for reference.
+
+By default, the final output preserves the original input order (sorted by sublibrary, then index). Use `--sort-by-reads` to keep the read-count sorted order instead.
 
 ## Pipeline
 
@@ -266,10 +273,10 @@ fld pipeline -o OUTPUT-DIR --pad-to 130 --barcode-length 10 --predict *.fasta
 6. **Predict read counts** for barcodes using `rn-coverage`
 7. **Merge** barcodes into library with read-count balancing (low-read designs paired with high-read barcodes)
 8. **Predict read counts** for the full merged sequences
-9. **Sort** final library by predicted read counts
+9. **Sort** final library (by original input order by default, or by predicted reads with `--sort-by-reads`)
 
 The final output in `OUTPUT-DIR/`:
-- `library.csv` - final library sorted by predicted reads, with columns for design_reads, barcode_reads, and reads (final prediction)
+- `library.csv` - final library with columns for design_reads, barcode_reads, and reads (final prediction)
 - `library.fasta` - sequences in FASTA format
 - `library.txt` - plain sequences (one per line)
 
@@ -285,6 +292,7 @@ Intermediate files are preserved in `OUTPUT-DIR/tmp/` for debugging.
 | `--no-barcodes` | false | Skip barcode generation entirely |
 | `--m2` | false | Generate M2-seq complement sequences |
 | `--predict` | false | Run rn-coverage prediction and merge |
+| `--sort-by-reads` | false | Sort final output by predicted reads (default: preserve input order) |
 | `--batch-size` | 32 | Batch size for rn-coverage prediction |
 | `--overwrite` | false | Overwrite existing output directory |
 | `--five-const` | ACTCGAGTAGAGTCGAAAA | 5' constant sequence |

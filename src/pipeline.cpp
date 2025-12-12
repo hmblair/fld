@@ -41,13 +41,16 @@ PipelineArgs::PipelineArgs() : Program(_PARSER_NAME),
     no_barcodes(_parser, "--no-barcodes", "Skip barcode generation", false),
     m2(_parser, "--m2", "Generate M2-seq complement sequences", false),
     predict(_parser, "--predict", "Predict reads with rn-coverage, merge barcodes, and sort by final reads", false),
-    batch_size(_parser, "--batch-size", "Batch size for rn-coverage prediction", 32)
+    batch_size(_parser, "--batch-size", "Batch size for rn-coverage prediction", 32),
+    sort_by_reads(_parser, "--sort-by-reads", "Sort output by predicted read counts (default: preserve input order)", false)
 {
     _parser.add_description(
         "Run the complete library design pipeline.\n\n"
         "Basic mode: preprocess, pad, and generate barcodes.\n"
         "With --predict: also predict reads, merge barcodes with read balancing,\n"
-        "                predict final reads, and sort by predicted coverage.\n\n"
+        "                predict final reads, and optionally sort output.\n\n"
+        "Default output order preserves input order (by sublibrary and index).\n"
+        "Use --sort-by-reads to sort by predicted read counts instead.\n\n"
         "Requires rn-coverage on PATH and RN_COV_CKPT set when using --predict."
     );
 }
@@ -290,7 +293,7 @@ void _pipeline(const PipelineConfig& config) {
             // Step 7: Merge barcodes with read-count balancing
             std::cout << "\n----- Merging barcodes with read-count balancing -----\n\n";
             std::string merged_prefix = tmp_dir + "/merged";
-            _merge(final_library + ".csv", library_reads, barcodes_file, barcode_reads, merged_prefix, true);
+            _merge(final_library + ".csv", library_reads, barcodes_file, barcode_reads, merged_prefix, true, config.sort_by_reads);
 
             // Step 8: Predict reads for merged sequences
             std::cout << "\n----- Predicting final read counts -----\n\n";
@@ -321,7 +324,7 @@ void _pipeline(const PipelineConfig& config) {
             // Step 9: Sort by final read counts
             std::cout << "\n----- Sorting by final read counts -----\n\n";
             std::string final_output = config.output_dir + "/library";
-            _sort(merged_prefix + ".csv", merged_reads, final_output, true, false);
+            _sort(merged_prefix + ".csv", merged_reads, final_output, true, false, config.sort_by_reads);
 
         } else {
             // No prediction - print manual instructions
