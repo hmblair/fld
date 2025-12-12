@@ -310,7 +310,6 @@ void Library::to_fasta(
 
 void Library::save(const std::string& prefix) const {
     to_csv(output_csv(prefix));
-    to_txt(output_txt(prefix));
     to_fasta(output_fasta(prefix));
 }
 

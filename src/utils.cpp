@@ -41,7 +41,6 @@ void _remove_if_exists_all(
 ) {
     _remove_if_exists(output_csv(prefix), overwrite);
     _remove_if_exists(output_fasta(prefix), overwrite);
-    _remove_if_exists(output_txt(prefix), overwrite);
 }
 
 std::vector<std::string> _split_by_delimiter(const std::string& s, char delimiter) {

@@ -4,6 +4,7 @@
 #include "barcodes.hpp"
 #include "merge.hpp"
 #include "sort.hpp"
+#include "totxt.hpp"
 #include "m2.hpp"
 #include "config/design_config.hpp"
 #include "io/csv_format.hpp"
@@ -240,6 +241,9 @@ void _pipeline(const PipelineConfig& config) {
             std::string predict_dir = tmp_dir + "/predictions";
             std::filesystem::create_directories(predict_dir);
 
+            // Generate .txt for rn-coverage tokenization
+            _to_txt(final_library + ".csv", final_library, true);
+
             // Tokenize library
             std::string library_tokens = tmp_dir + "/library_tokens.nc";
             std::cout << "Tokenizing library...\n";
@@ -298,6 +302,9 @@ void _pipeline(const PipelineConfig& config) {
             // Step 8: Predict reads for merged sequences
             std::cout << "\n----- Predicting final read counts -----\n\n";
 
+            // Generate .txt for rn-coverage tokenization
+            _to_txt(merged_prefix + ".csv", merged_prefix, true);
+
             std::string merged_tokens = tmp_dir + "/merged_tokens.nc";
             std::cout << "Tokenizing merged sequences...\n";
             if (_run_command("rn-coverage tokenize " + merged_prefix + ".txt " + merged_tokens) != 0) {
@@ -332,11 +339,13 @@ void _pipeline(const PipelineConfig& config) {
             std::cout << "  Library: " << final_library << ".csv\n";
             std::cout << "  Barcodes: " << barcodes_file << "\n\n";
             std::cout << "To complete the pipeline with read-count balancing:\n";
-            std::cout << "  1. Run your read prediction tool on:\n";
+            std::cout << "  1. Generate plain text sequences:\n";
+            std::cout << "     fld txt --output " << final_library << " " << final_library << ".csv\n";
+            std::cout << "  2. Run your read prediction tool on:\n";
             std::cout << "     - " << final_library << ".txt\n";
             std::cout << "     - " << barcodes_file << "\n";
-            std::cout << "  2. Save read counts to text files (one count per line)\n";
-            std::cout << "  3. Run: fld merge --library " << final_library << ".csv \\\n";
+            std::cout << "  3. Save read counts to text files (one count per line)\n";
+            std::cout << "  4. Run: fld merge --library " << final_library << ".csv \\\n";
             std::cout << "          --library-reads <library_reads.txt> \\\n";
             std::cout << "          --barcodes " << barcodes_file << " \\\n";
             std::cout << "          --barcode-reads <barcode_reads.txt> \\\n";
@@ -349,9 +358,6 @@ void _pipeline(const PipelineConfig& config) {
             std::filesystem::copy_options::overwrite_existing);
         std::filesystem::copy(final_library + ".fasta",
             config.output_dir + "/library.fasta",
-            std::filesystem::copy_options::overwrite_existing);
-        std::filesystem::copy(final_library + ".txt",
-            config.output_dir + "/library.txt",
             std::filesystem::copy_options::overwrite_existing);
     }
 

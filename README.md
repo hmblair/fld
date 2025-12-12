@@ -65,7 +65,7 @@ Once the designs are in the proper file, the library elements can be added. A mi
 ```
 fld design -o out --pad-to 130 --barcode-length 10 library.csv
 ```
-The output file will be `out.csv` with the same columns as the input, but with the appropriate columns filled in. In addition, `out.fasta` and `out.txt` will be generated as well.
+The output file will be `out.csv` with the same columns as the input, but with the appropriate columns filled in. In addition, `out.fasta` will be generated.
 
 That the output has the same columns as the input allows for you to append new (preprocessed) designs to an output, then run `fld design` again, and it will respect the existing library elements (e.g. it will not repeat barcodes).
 
@@ -247,7 +247,7 @@ When run without the `--predict` flag, the pipeline:
 4. Generates unique barcodes (unless `--no-barcodes`)
 
 Output files are placed in `OUTPUT-DIR/tmp/`:
-- `library.csv`, `library.fasta`, `library.txt` - the designed library (without barcodes merged)
+- `library.csv`, `library.fasta` - the designed library (without barcodes merged)
 - `barcodes.txt` - the generated barcode sequences
 
 The command prints instructions for manually running read prediction and `fld merge`.
@@ -278,7 +278,6 @@ fld pipeline -o OUTPUT-DIR --pad-to 130 --barcode-length 10 --predict *.fasta
 The final output in `OUTPUT-DIR/`:
 - `library.csv` - final library with columns for design_reads, barcode_reads, and reads (final prediction)
 - `library.fasta` - sequences in FASTA format
-- `library.txt` - plain sequences (one per line)
 
 Intermediate files are preserved in `OUTPUT-DIR/tmp/` for debugging.
 

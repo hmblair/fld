@@ -106,11 +106,9 @@ void _sort(
     }
     out_csv.close();
 
-    // Write sorted FASTA and TXT
+    // Write sorted FASTA
     std::string fasta_out = output_prefix + ".fasta";
-    std::string txt_out = output_prefix + ".txt";
     std::ofstream out_fasta(fasta_out);
-    std::ofstream out_txt(txt_out);
 
     for (const auto& item : indexed) {
         auto fields = _split_by_delimiter(item.line, ',');
@@ -127,12 +125,10 @@ void _sort(
                           fields[csv::BARCODE] + fields[csv::THREE_CONST];
 
         out_fasta << ">" << name << " (" << sublibrary << ")\n" << seq << "\n";
-        out_txt << seq << "\n";
     }
 
     out_fasta.close();
-    out_txt.close();
 
     std::cout << "Sorted " << lines.size() << " sequences by read count.\n";
-    std::cout << "Output: " << csv_out << ", " << fasta_out << ", " << txt_out << "\n";
+    std::cout << "Output: " << csv_out << ", " << fasta_out << "\n";
 }

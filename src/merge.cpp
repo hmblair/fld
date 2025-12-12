@@ -170,11 +170,9 @@ void _merge(
     }
     out_csv.close();
 
-    // Write FASTA and TXT
+    // Write FASTA
     std::string fasta_out = output_prefix + ".fasta";
-    std::string txt_out = output_prefix + ".txt";
     std::ofstream out_fasta(fasta_out);
-    std::ofstream out_txt(txt_out);
 
     for (const auto& entry : merged) {
         if (entry.fields.size() < csv::COUNT) {
@@ -190,12 +188,10 @@ void _merge(
                           entry.fields[csv::BARCODE] + entry.fields[csv::THREE_CONST];
 
         out_fasta << ">" << name << " (" << sublibrary << ")\n" << seq << "\n";
-        out_txt << seq << "\n";
     }
 
     out_fasta.close();
-    out_txt.close();
 
     std::cout << "Merged " << merged.size() << " library entries with barcodes.\n";
-    std::cout << "Output: " << csv_out << ", " << fasta_out << ", " << txt_out << "\n";
+    std::cout << "Output: " << csv_out << ", " << fasta_out << "\n";
 }
