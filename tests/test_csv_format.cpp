@@ -1,5 +1,6 @@
 #include "doctest.hpp"
 #include "io/csv_format.hpp"
+#include <algorithm>
 
 TEST_CASE("csv::header returns correct format") {
     std::string header = csv::header();
