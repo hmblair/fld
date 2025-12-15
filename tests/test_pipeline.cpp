@@ -12,7 +12,15 @@ static bool rn_coverage_available() {
                        "python3 -c 'import h5py' > /dev/null 2>&1") == 0;
 }
 
+// RAII helper to clean up PyTorch Lightning logs created during tests
+struct LightningLogsCleaner {
+    ~LightningLogsCleaner() {
+        std::filesystem::remove_all("lightning_logs");
+    }
+};
+
 TEST_CASE("pipeline with --predict" * doctest::skip(!rn_coverage_available())) {
+    LightningLogsCleaner log_cleaner;  // Clean up lightning_logs when test ends
     TempDir tmpdir;
     std::string input_fasta = tmpdir.path() + "/input.fasta";
     std::string output_dir = tmpdir.path() + "/output";
