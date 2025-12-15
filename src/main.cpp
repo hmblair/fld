@@ -23,112 +23,25 @@ void SuperProgram::parse(int argc, char** argv) {
     _parent.parse_args(argc, argv);
 }
 
-bool SuperProgram::is_design() const {
-    return design.used(_parent);
-}
-
-bool SuperProgram::is_preprocess() const {
-    return preprocess.used(_parent);
-}
-
-bool SuperProgram::is_inspect() const {
-    return inspect.used(_parent);
-}
-
-bool SuperProgram::is_barcodes() const {
-    return barcodes.used(_parent);
-}
-
-bool SuperProgram::is_m2() const {
-    return m2.used(_parent);
-}
-
-bool SuperProgram::is_random() const {
-    return random.used(_parent);
-}
-
-bool SuperProgram::is_duplicate() const {
-    return duplicate.used(_parent);
-}
-
-bool SuperProgram::is_txt() const {
-    return txt.used(_parent);
-}
-
-bool SuperProgram::is_test() const {
-    return test.used(_parent);
-}
-
-bool SuperProgram::is_categorize() const {
-    return categorize.used(_parent);
-}
-
-bool SuperProgram::is_sort() const {
-    return sort.used(_parent);
-}
-
-bool SuperProgram::is_merge() const {
-    return merge.used(_parent);
-}
-
-bool SuperProgram::is_pipeline() const {
-    return pipeline.used(_parent);
-}
-
-bool SuperProgram::is_prepend() const {
-    return prepend.used(_parent);
-}
-
-bool SuperProgram::is_torna() const {
-    return torna.used(_parent);
-}
-
-bool SuperProgram::is_todna() const {
-    return todna.used(_parent);
-}
-
-bool SuperProgram::is_diff() const {
-    return diff.used(_parent);
-}
-
 MODE SuperProgram::mode() const {
-    if (is_design()) {
-        return MODE::Design;
-    } else if (is_preprocess()) {
-        return MODE::Preprocess;
-    } else if (is_inspect()) {
-        return MODE::Inspect;
-    } else if (is_barcodes()) {
-        return MODE::Barcodes;
-    } else if (is_m2()) {
-        return MODE::M2;
-    } else if (is_random()) {
-        return MODE::Random;
-    } else if (is_duplicate()) {
-        return MODE::Duplicate;
-    } else if (is_txt()) {
-        return MODE::TXT;
-    } else if (is_test()) {
-        return MODE::Test;
-    } else if (is_categorize()) {
-        return MODE::Categorize;
-    } else if (is_sort()) {
-        return MODE::Sort;
-    } else if (is_merge()) {
-        return MODE::Merge;
-    } else if (is_pipeline()) {
-        return MODE::Pipeline;
-    } else if (is_prepend()) {
-        return MODE::Prepend;
-    } else if (is_torna()) {
-        return MODE::ToRna;
-    } else if (is_todna()) {
-        return MODE::ToDna;
-    } else if (is_diff()) {
-        return MODE::Diff;
-    } else {
-        throw std::runtime_error("Unknown subcommand.");
-    }
+    if (design.used(_parent))     return MODE::Design;
+    if (preprocess.used(_parent)) return MODE::Preprocess;
+    if (inspect.used(_parent))    return MODE::Inspect;
+    if (barcodes.used(_parent))   return MODE::Barcodes;
+    if (m2.used(_parent))         return MODE::M2;
+    if (random.used(_parent))     return MODE::Random;
+    if (duplicate.used(_parent))  return MODE::Duplicate;
+    if (txt.used(_parent))        return MODE::TXT;
+    if (test.used(_parent))       return MODE::Test;
+    if (categorize.used(_parent)) return MODE::Categorize;
+    if (sort.used(_parent))       return MODE::Sort;
+    if (merge.used(_parent))      return MODE::Merge;
+    if (pipeline.used(_parent))   return MODE::Pipeline;
+    if (prepend.used(_parent))    return MODE::Prepend;
+    if (torna.used(_parent))      return MODE::ToRna;
+    if (todna.used(_parent))      return MODE::ToDna;
+    if (diff.used(_parent))       return MODE::Diff;
+    throw std::runtime_error("Unknown subcommand.");
 }
 
 int main(int argc, char** argv) {

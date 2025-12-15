@@ -71,23 +71,6 @@ public:
 
     SuperProgram();
     void parse(int argc, char** argv);
-    bool is_design() const;
-    bool is_preprocess() const;
-    bool is_inspect() const;
-    bool is_barcodes() const;
-    bool is_m2() const;
-    bool is_random() const;
-    bool is_duplicate() const;
-    bool is_txt() const;
-    bool is_test() const;
-    bool is_categorize() const;
-    bool is_sort() const;
-    bool is_merge() const;
-    bool is_pipeline() const;
-    bool is_prepend() const;
-    bool is_torna() const;
-    bool is_todna() const;
-    bool is_diff() const;
     MODE mode() const;
 
 };
