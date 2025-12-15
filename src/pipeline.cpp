@@ -5,6 +5,7 @@
 #include "merge.hpp"
 #include "sort.hpp"
 #include "totxt.hpp"
+#include "prepend.hpp"
 #include "m2.hpp"
 #include "config/design_config.hpp"
 #include "io/csv_format.hpp"
@@ -317,6 +318,14 @@ void _pipeline(const PipelineConfig& config) {
         std::filesystem::copy(final_library + ".fasta",
             config.output_dir + "/library.fasta",
             std::filesystem::copy_options::overwrite_existing);
+    }
+
+    // Generate RNA version with T7 promoter prefix
+    std::string library_fasta = config.output_dir + "/library.fasta";
+    std::string library_rna_fasta = config.output_dir + "/library-rna.fasta";
+    if (std::filesystem::exists(library_fasta)) {
+        std::cout << "\n----- Generating RNA library with T7 prefix -----\n\n";
+        _prepend(library_fasta, library_rna_fasta, "GGGAACG", true);
     }
 
     std::cout << "\n===== Pipeline complete =====\n";
