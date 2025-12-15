@@ -2,6 +2,16 @@
 
 set -eo pipefail
 
+# Parse arguments
+CLEAN=false
+for arg in "$@"; do
+    case $arg in
+        --clean)
+            CLEAN=true
+            ;;
+    esac
+done
+
 command -v make >/dev/null 2>&1 || { echo >&2 "Make is required but is not installed. Exiting."; exit 1; }
 command -v cmake >/dev/null 2>&1 || { echo >&2 "CMake is required but is not installed. Exiting."; exit 1; }
 
@@ -9,21 +19,30 @@ SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 BUILD_DIR=${SCRIPT_DIR}/build
 BIN_DIR=${SCRIPT_DIR}/bin
 
-# Clean and create build directory
+# Detect number of CPU cores (cross-platform)
+if command -v nproc >/dev/null 2>&1; then
+    NPROC=$(nproc)
+elif command -v sysctl >/dev/null 2>&1; then
+    NPROC=$(sysctl -n hw.ncpu)
+else
+    NPROC=4
+fi
 
+# Clean build directory if requested (bin/ is always cleaned for install)
+if [ "$CLEAN" = true ]; then
+    rm -rf ${BUILD_DIR}
+fi
 rm -rf ${BIN_DIR}
 mkdir -p ${BUILD_DIR} ${BIN_DIR}
 
 pushd ${BUILD_DIR} > /dev/null
 
 # Run cmake with appropriate options
-
 CMAKE_OPTIONS="-DCMAKE_INSTALL_PREFIX=${SCRIPT_DIR}"
 cmake ${CMAKE_OPTIONS} ..
 
 # Build and install project
-
-make -j$(nproc)
+make -j${NPROC}
 make install
 
 popd > /dev/null
