@@ -313,7 +313,6 @@ int main(int argc, char** argv) {
                 config.no_barcodes = opt.no_barcodes;
                 config.generate_m2 = opt.m2;
                 config.predict = opt.predict;
-                config.batch_size = opt.batch_size;
                 config.sort_by_reads = opt.sort_by_reads;
                 _pipeline(config);
                 break;

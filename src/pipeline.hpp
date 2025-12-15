@@ -29,7 +29,6 @@ public:
     Arg<bool> m2;
     // Prediction options
     Arg<bool> predict;
-    Arg<int> batch_size;
     // Output ordering
     Arg<bool> sort_by_reads;
     PipelineArgs();
@@ -48,7 +47,6 @@ struct PipelineConfig {
     bool generate_m2;
     // Prediction options
     bool predict;
-    int batch_size;
     // Output ordering
     bool sort_by_reads;
 };

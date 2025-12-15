@@ -3,3 +3,4 @@ dev/
 build/
 output/
 *cache/
+lightning_logs/

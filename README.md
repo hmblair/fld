@@ -262,7 +262,6 @@ fld pipeline -o OUTPUT-DIR --pad-to 130 --barcode-length 10 --predict *.fasta
 
 **Prerequisites:**
 - `rn-coverage` must be installed and on your PATH
-- The `RN_COV_CKPT` environment variable must point to the model checkpoint
 
 **Steps performed:**
 1. Preprocess all input FASTA files
@@ -292,7 +291,6 @@ Intermediate files are preserved in `OUTPUT-DIR/tmp/` for debugging.
 | `--m2` | false | Generate M2-seq complement sequences |
 | `--predict` | false | Run rn-coverage prediction and merge |
 | `--sort-by-reads` | false | Sort final output by predicted reads (default: preserve input order) |
-| `--batch-size` | 32 | Batch size for rn-coverage prediction |
 | `--overwrite` | false | Overwrite existing output directory |
 | `--five-const` | ACTCGAGTAGAGTCGAAAA | 5' constant sequence |
 | `--three-const` | AAAAGAAACAACAACAACAAC | 3' constant sequence |

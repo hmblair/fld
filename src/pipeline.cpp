@@ -42,7 +42,6 @@ PipelineArgs::PipelineArgs() : Program(_PARSER_NAME),
     no_barcodes(_parser, "--no-barcodes", "Skip barcode generation", false),
     m2(_parser, "--m2", "Generate M2-seq complement sequences", false),
     predict(_parser, "--predict", "Predict reads with rn-coverage, merge barcodes, and sort by final reads", false),
-    batch_size(_parser, "--batch-size", "Batch size for rn-coverage prediction", 32),
     sort_by_reads(_parser, "--sort-by-reads", "Sort output by predicted read counts (default: preserve input order)", false)
 {
     _parser.add_description(
@@ -52,7 +51,7 @@ PipelineArgs::PipelineArgs() : Program(_PARSER_NAME),
         "                predict final reads, and optionally sort output.\n\n"
         "Default output order preserves input order (by sublibrary and index).\n"
         "Use --sort-by-reads to sort by predicted read counts instead.\n\n"
-        "Requires rn-coverage on PATH and RN_COV_CKPT set when using --predict."
+        "Requires rn-coverage on PATH when using --predict."
     );
 }
 
@@ -72,35 +71,6 @@ static int _run_command(const std::string& cmd) {
 static bool _command_exists(const std::string& cmd) {
     std::string check = "which " + cmd + " > /dev/null 2>&1";
     return std::system(check.c_str()) == 0;
-}
-
-// Check if an environment variable is set
-static bool _env_exists(const std::string& var) {
-    return std::getenv(var.c_str()) != nullptr;
-}
-
-// Write a YAML config file for rn-coverage predict
-static void _write_predict_config(
-    const std::string& config_path,
-    const std::string& input_nc,
-    const std::string& output_dir,
-    int batch_size
-) {
-    std::ofstream out(config_path);
-    out << "model:\n";
-    out << "  name: rn-coverage\n";
-    out << "\n";
-    out << "trainer:\n";
-    out << "  devices: 1\n";
-    out << "  callbacks:\n";
-    out << "    - path: " << output_dir << "\n";
-    out << "\n";
-    out << "data:\n";
-    out << "  batch_size: " << batch_size << "\n";
-    out << "  paths:\n";
-    out << "    predict:\n";
-    out << "      - " << input_nc << "\n";
-    out.close();
 }
 
 static void _stack_csv_files(
@@ -232,11 +202,6 @@ void _pipeline(const PipelineConfig& config) {
                     "rn-coverage not found on PATH. Install it and add to PATH, "
                     "or run without --predict and follow manual instructions.");
             }
-            if (!_env_exists("RN_COV_CKPT")) {
-                throw std::runtime_error(
-                    "RN_COV_CKPT environment variable not set. "
-                    "Set it to the path of your pre-trained model checkpoint.");
-            }
 
             std::string predict_dir = tmp_dir + "/predictions";
             std::filesystem::create_directories(predict_dir);
@@ -245,36 +210,31 @@ void _pipeline(const PipelineConfig& config) {
             _to_txt(final_library + ".csv", final_library, true);
 
             // Tokenize library
-            std::string library_tokens = tmp_dir + "/library_tokens.nc";
+            std::string library_tokens = tmp_dir + "/library_tokens.h5";
             std::cout << "Tokenizing library...\n";
             if (_run_command("rn-coverage tokenize " + final_library + ".txt " + library_tokens) != 0) {
                 throw std::runtime_error("Failed to tokenize library sequences");
             }
 
             // Tokenize barcodes
-            std::string barcode_tokens = tmp_dir + "/barcode_tokens.nc";
+            std::string barcode_tokens = tmp_dir + "/barcode_tokens.h5";
             std::cout << "\nTokenizing barcodes...\n";
             if (_run_command("rn-coverage tokenize " + barcodes_file + " " + barcode_tokens) != 0) {
                 throw std::runtime_error("Failed to tokenize barcode sequences");
             }
 
-            // Write config files
-            std::string library_config = tmp_dir + "/library_predict.yaml";
-            std::string barcode_config = tmp_dir + "/barcode_predict.yaml";
+            // Set up prediction output directories
             std::string library_pred_dir = predict_dir + "/library";
             std::string barcode_pred_dir = predict_dir + "/barcodes";
 
-            _write_predict_config(library_config, library_tokens, library_pred_dir, config.batch_size);
-            _write_predict_config(barcode_config, barcode_tokens, barcode_pred_dir, config.batch_size);
-
             // Run predictions
             std::cout << "\nPredicting library read counts...\n";
-            if (_run_command("rn-coverage predict " + library_config) != 0) {
+            if (_run_command("rn-coverage predict " + library_tokens + " -o " + library_pred_dir) != 0) {
                 throw std::runtime_error("Failed to predict library read counts");
             }
 
             std::cout << "\nPredicting barcode read counts...\n";
-            if (_run_command("rn-coverage predict " + barcode_config) != 0) {
+            if (_run_command("rn-coverage predict " + barcode_tokens + " -o " + barcode_pred_dir) != 0) {
                 throw std::runtime_error("Failed to predict barcode read counts");
             }
 
@@ -282,15 +242,15 @@ void _pipeline(const PipelineConfig& config) {
             std::string library_reads = tmp_dir + "/library_reads.txt";
             std::string barcode_reads = tmp_dir + "/barcode_reads.txt";
 
-            // The prediction output file has the same name as the input .nc file
-            std::string library_pred_nc = library_pred_dir + "/library_tokens.nc";
-            std::string barcode_pred_nc = barcode_pred_dir + "/barcode_tokens.nc";
+            // The prediction output file has the same name as the input .h5 file
+            std::string library_pred_h5 = library_pred_dir + "/library_tokens.h5";
+            std::string barcode_pred_h5 = barcode_pred_dir + "/barcode_tokens.h5";
 
             std::cout << "\nExtracting predictions...\n";
-            if (_run_command("rn-coverage extract " + library_pred_nc + " " + library_reads) != 0) {
+            if (_run_command("rn-coverage extract " + library_pred_h5 + " " + library_reads) != 0) {
                 throw std::runtime_error("Failed to extract library predictions");
             }
-            if (_run_command("rn-coverage extract " + barcode_pred_nc + " " + barcode_reads) != 0) {
+            if (_run_command("rn-coverage extract " + barcode_pred_h5 + " " + barcode_reads) != 0) {
                 throw std::runtime_error("Failed to extract barcode predictions");
             }
 
@@ -305,26 +265,24 @@ void _pipeline(const PipelineConfig& config) {
             // Generate .txt for rn-coverage tokenization
             _to_txt(merged_prefix + ".csv", merged_prefix, true);
 
-            std::string merged_tokens = tmp_dir + "/merged_tokens.nc";
+            std::string merged_tokens = tmp_dir + "/merged_tokens.h5";
             std::cout << "Tokenizing merged sequences...\n";
             if (_run_command("rn-coverage tokenize " + merged_prefix + ".txt " + merged_tokens) != 0) {
                 throw std::runtime_error("Failed to tokenize merged sequences");
             }
 
-            std::string merged_config = tmp_dir + "/merged_predict.yaml";
             std::string merged_pred_dir = predict_dir + "/merged";
-            _write_predict_config(merged_config, merged_tokens, merged_pred_dir, config.batch_size);
 
             std::cout << "\nPredicting merged read counts...\n";
-            if (_run_command("rn-coverage predict " + merged_config) != 0) {
+            if (_run_command("rn-coverage predict " + merged_tokens + " -o " + merged_pred_dir) != 0) {
                 throw std::runtime_error("Failed to predict merged read counts");
             }
 
-            std::string merged_pred_nc = merged_pred_dir + "/merged_tokens.nc";
+            std::string merged_pred_h5 = merged_pred_dir + "/merged_tokens.h5";
             std::string merged_reads = tmp_dir + "/merged_reads.txt";
 
             std::cout << "\nExtracting predictions...\n";
-            if (_run_command("rn-coverage extract " + merged_pred_nc + " " + merged_reads) != 0) {
+            if (_run_command("rn-coverage extract " + merged_pred_h5 + " " + merged_reads) != 0) {
                 throw std::runtime_error("Failed to extract merged predictions");
             }
 
