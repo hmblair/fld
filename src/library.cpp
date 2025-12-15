@@ -8,34 +8,37 @@
 #include <iostream>
 #include <stdexcept>
 
-static inline void _check_header(const std::string& header) {
-    if (!csv::is_valid_header(header)) {
-        throw std::runtime_error("The columns in the .csv are not as expected.");
-    }
-}
-
 //
 // Construct
 //
 
-static inline Construct _from_record(const std::string& record) {
-    std::vector<std::string> columns = _split_by_delimiter(record, ',');
-    // Require at least the core columns (up to THREE_CONST); begin/end are computed
-    if (columns.size() < csv::THREE_CONST + 1) {
-        throw std::runtime_error("CSV record has " + std::to_string(columns.size()) +
-            " columns, expected at least " + std::to_string(csv::THREE_CONST + 1));
-    }
-    size_t index = std::stoull(columns[csv::INDEX]);
+static inline Construct _from_record(const std::string& record, const csv::Header& header, size_t row_num) {
+    std::vector<std::string> fields = _split_by_delimiter(record, ',');
+
+    // Get required sequence columns
+    std::string five_const = header.get(fields, csv::COL_FIVE_CONST);
+    std::string five_padding = header.get(fields, csv::COL_FIVE_PADDING);
+    std::string design = header.get(fields, csv::COL_DESIGN);
+    std::string three_padding = header.get(fields, csv::COL_THREE_PADDING);
+    std::string barcode = header.get(fields, csv::COL_BARCODE);
+    std::string three_const = header.get(fields, csv::COL_THREE_CONST);
+
+    // Get optional metadata columns with defaults
+    std::string index_str = header.get(fields, csv::COL_INDEX, std::to_string(row_num));
+    size_t index = std::stoull(index_str);
+    std::string name = header.get(fields, csv::COL_NAME, "seq_" + std::to_string(row_num));
+    std::string sublibrary = header.get(fields, csv::COL_SUBLIBRARY, "");
+
     return Construct(
         index,
-        columns[csv::NAME],
-        columns[csv::SUBLIBRARY],
-        columns[csv::FIVE_CONST],
-        columns[csv::FIVE_PADDING],
-        columns[csv::DESIGN],
-        columns[csv::THREE_PADDING],
-        columns[csv::BARCODE],
-        columns[csv::THREE_CONST]
+        name,
+        sublibrary,
+        five_const,
+        five_padding,
+        design,
+        three_padding,
+        barcode,
+        three_const
     );
 }
 
@@ -47,12 +50,17 @@ Library _from_csv(const std::string& filename) {
     std::string line;
 
     std::getline(file, line);
-    _check_header(line);
+    csv::Header header(line);
+    header.validate();
 
     std::vector<Construct> constructs;
+    size_t row_num = 1;
 
     while (std::getline(file, line)) {
-        constructs.push_back(_from_record(line));
+        if (!line.empty()) {
+            constructs.push_back(_from_record(line, header, row_num));
+            row_num++;
+        }
     }
 
     return Library(constructs);

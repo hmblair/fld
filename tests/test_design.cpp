@@ -3,6 +3,7 @@
 #include "library.hpp"
 #include "preprocess.hpp"
 #include "config/design_config.hpp"
+#include "io/csv_format.hpp"
 
 TEST_CASE("design produces sequences of correct padded length") {
     std::mt19937 gen(42);  // Fixed seed for reproducibility
@@ -144,4 +145,55 @@ TEST_CASE("design with barcoding produces unique barcodes") {
     }
 
     CHECK(barcodes.size() == K);
+}
+
+TEST_CASE("library loading accepts minimal CSV format (only required columns)") {
+    TempDir tmpdir;
+    std::string csv_path = tmpdir.path() + "/minimal.csv";
+
+    // Write a minimal CSV with only required sequence columns (valid nucleotides)
+    {
+        std::ofstream file(csv_path);
+        file << "five_const,five_padding,design,three_padding,barcode,three_const\n";
+        file << "AAA,GGG,ACGT,CCC,TTT,AAA\n";
+        file << "GGG,AAA,TGCA,TTT,CCC,GGG\n";
+    }
+
+    // Should load successfully
+    Library library = _from_csv(csv_path);
+    CHECK(library.size() == 2);
+}
+
+TEST_CASE("library loading accepts reordered columns") {
+    TempDir tmpdir;
+    std::string csv_path = tmpdir.path() + "/reordered.csv";
+
+    // Write a CSV with columns in different order (valid nucleotides)
+    {
+        std::ofstream file(csv_path);
+        file << "design,barcode,five_const,three_const,five_padding,three_padding\n";
+        file << "ACGT,TTAA,AAA,GGG,CCC,TTT\n";
+        file << "TGCA,GGCC,TTT,AAA,GGG,CCC\n";
+    }
+
+    // Should load successfully with correct field assignment
+    Library library = _from_csv(csv_path);
+    CHECK(library.size() == 2);
+}
+
+TEST_CASE("library loading with optional columns provides defaults") {
+    TempDir tmpdir;
+    std::string csv_path = tmpdir.path() + "/with_name.csv";
+
+    // Write a CSV with some optional columns (valid nucleotides)
+    {
+        std::ofstream file(csv_path);
+        file << "name,five_const,five_padding,design,three_padding,barcode,three_const\n";
+        file << "gene_a,AAA,GGG,ACGT,CCC,TTT,AAA\n";
+        file << "gene_b,GGG,AAA,TGCA,TTT,CCC,GGG\n";
+    }
+
+    // Should load successfully
+    Library library = _from_csv(csv_path);
+    CHECK(library.size() == 2);
 }

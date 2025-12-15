@@ -47,9 +47,8 @@ void _sort(
     std::string header_line;
     std::getline(in, header_line);
 
-    if (!csv::is_valid_header(header_line)) {
-        throw std::runtime_error("Invalid CSV header. Expected: " + csv::header());
-    }
+    csv::Header header(header_line);
+    header.validate();
 
     std::vector<std::string> lines;
     std::string line;
@@ -68,8 +67,9 @@ void _sort(
     indexed.reserve(lines.size());
     for (size_t i = 0; i < lines.size(); i++) {
         auto fields = _split_by_delimiter(lines[i], ',');
-        size_t orig_idx = (fields.size() > csv::INDEX) ? std::stoull(fields[csv::INDEX]) : 0;
-        std::string sublib = (fields.size() > csv::SUBLIBRARY) ? fields[csv::SUBLIBRARY] : "";
+        std::string idx_str = header.get(fields, csv::COL_INDEX, std::to_string(i + 1));
+        size_t orig_idx = std::stoull(idx_str);
+        std::string sublib = header.get(fields, csv::COL_SUBLIBRARY, "");
         indexed.push_back({orig_idx, sublib, reads[i], lines[i]});
     }
 
@@ -112,19 +112,24 @@ void _sort(
 
     for (const auto& item : indexed) {
         auto fields = _split_by_delimiter(item.line, ',');
-        if (fields.size() < csv::COUNT) {
-            std::cerr << "Warning: skipping malformed CSV row with "
-                      << fields.size() << " fields (expected " << csv::COUNT << ")\n";
-            continue;
+
+        // Get sequence columns (required)
+        std::string seq = header.get(fields, csv::COL_FIVE_CONST) +
+                          header.get(fields, csv::COL_FIVE_PADDING) +
+                          header.get(fields, csv::COL_DESIGN) +
+                          header.get(fields, csv::COL_THREE_PADDING) +
+                          header.get(fields, csv::COL_BARCODE) +
+                          header.get(fields, csv::COL_THREE_CONST);
+
+        // Get optional metadata for FASTA header
+        std::string name = header.get(fields, csv::COL_NAME, "sequence");
+        std::string sublibrary = header.get(fields, csv::COL_SUBLIBRARY, "");
+
+        if (sublibrary.empty()) {
+            out_fasta << ">" << name << "\n" << seq << "\n";
+        } else {
+            out_fasta << ">" << name << " (" << sublibrary << ")\n" << seq << "\n";
         }
-
-        std::string name = fields[csv::NAME];
-        std::string sublibrary = fields[csv::SUBLIBRARY];
-        std::string seq = fields[csv::FIVE_CONST] + fields[csv::FIVE_PADDING] +
-                          fields[csv::DESIGN] + fields[csv::THREE_PADDING] +
-                          fields[csv::BARCODE] + fields[csv::THREE_CONST];
-
-        out_fasta << ">" << name << " (" << sublibrary << ")\n" << seq << "\n";
     }
 
     out_fasta.close();

@@ -67,24 +67,22 @@ void _merge(
     std::string header_line;
     std::getline(in, header_line);
 
-    if (!csv::is_valid_header(header_line)) {
-        throw std::runtime_error("Invalid CSV header. Expected: " + csv::header());
-    }
+    csv::Header header(header_line);
+    header.validate();
 
     std::vector<LibraryEntry> library_entries;
     std::string line;
+    size_t row_num = 1;
     while (std::getline(in, line)) {
         if (line.empty()) continue;
         LibraryEntry entry;
         entry.fields = _split_by_delimiter(line, ',');
-        // Parse original_index and sublibrary from CSV
-        if (entry.fields.size() > csv::INDEX) {
-            entry.original_index = std::stoull(entry.fields[csv::INDEX]);
-        }
-        if (entry.fields.size() > csv::SUBLIBRARY) {
-            entry.sublibrary = entry.fields[csv::SUBLIBRARY];
-        }
+        // Parse original_index and sublibrary from CSV (with defaults)
+        std::string idx_str = header.get(entry.fields, csv::COL_INDEX, std::to_string(row_num));
+        entry.original_index = std::stoull(idx_str);
+        entry.sublibrary = header.get(entry.fields, csv::COL_SUBLIBRARY, "");
         library_entries.push_back(entry);
+        row_num++;
     }
     in.close();
 
@@ -138,8 +136,9 @@ void _merge(
         entry.barcode_reads = barcode_entries[i].reads;
 
         // Replace the barcode field
-        if (entry.fields.size() > csv::BARCODE) {
-            entry.fields[csv::BARCODE] = entry.barcode;
+        int bc_idx = header.index_of(csv::COL_BARCODE);
+        if (bc_idx >= 0 && static_cast<size_t>(bc_idx) < entry.fields.size()) {
+            entry.fields[bc_idx] = entry.barcode;
         }
 
         merged.push_back(entry);
@@ -175,19 +174,23 @@ void _merge(
     std::ofstream out_fasta(fasta_out);
 
     for (const auto& entry : merged) {
-        if (entry.fields.size() < csv::COUNT) {
-            std::cerr << "Warning: skipping malformed CSV row with "
-                      << entry.fields.size() << " fields (expected " << csv::COUNT << ")\n";
-            continue;
+        // Get sequence columns (required)
+        std::string seq = header.get(entry.fields, csv::COL_FIVE_CONST) +
+                          header.get(entry.fields, csv::COL_FIVE_PADDING) +
+                          header.get(entry.fields, csv::COL_DESIGN) +
+                          header.get(entry.fields, csv::COL_THREE_PADDING) +
+                          header.get(entry.fields, csv::COL_BARCODE) +
+                          header.get(entry.fields, csv::COL_THREE_CONST);
+
+        // Get optional metadata for FASTA header
+        std::string name = header.get(entry.fields, csv::COL_NAME, "sequence");
+        std::string sublibrary = header.get(entry.fields, csv::COL_SUBLIBRARY, "");
+
+        if (sublibrary.empty()) {
+            out_fasta << ">" << name << "\n" << seq << "\n";
+        } else {
+            out_fasta << ">" << name << " (" << sublibrary << ")\n" << seq << "\n";
         }
-
-        std::string name = entry.fields[csv::NAME];
-        std::string sublibrary = entry.fields[csv::SUBLIBRARY];
-        std::string seq = entry.fields[csv::FIVE_CONST] + entry.fields[csv::FIVE_PADDING] +
-                          entry.fields[csv::DESIGN] + entry.fields[csv::THREE_PADDING] +
-                          entry.fields[csv::BARCODE] + entry.fields[csv::THREE_CONST];
-
-        out_fasta << ">" << name << " (" << sublibrary << ")\n" << seq << "\n";
     }
 
     out_fasta.close();

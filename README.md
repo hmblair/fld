@@ -120,7 +120,9 @@ fld pipeline -o output/ --pad-to 130 --barcode-length 10 \
     --five-const "GGGAAACCC" --three-const "AAAAAAAAAA" designs.fasta
 ```
 
-## CSV Output Format
+## CSV Format
+
+### Output Format
 
 The output CSV contains these columns:
 
@@ -141,6 +143,21 @@ The output CSV contains these columns:
 The full sequence is: `five_const + five_padding + design + three_padding + barcode + three_const`
 
 The `begin` and `end` columns indicate where the original design is located within this full sequence. Sanity check: `end - begin + 1 == len(design)`.
+
+### Input Format (Flexible)
+
+When using `fld design` or other commands that read CSV files, only the **sequence columns** are required:
+
+| Required Column | Description |
+|-----------------|-------------|
+| `five_const` | 5' constant/primer region |
+| `five_padding` | 5' padding hairpins |
+| `design` | Original design sequence |
+| `three_padding` | 3' padding hairpins |
+| `barcode` | Barcode hairpin |
+| `three_const` | 3' constant/primer region |
+
+Optional metadata columns (`index`, `name`, `sublibrary`, `begin`, `end`) are used if present, otherwise sensible defaults are applied. Columns can appear in any order.
 
 ## Pipeline Options Reference
 

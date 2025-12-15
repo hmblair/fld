@@ -85,22 +85,36 @@ static void _check_design_against_fasta(
 
     // Read CSV and check each row
     std::ifstream csv_file(csv_path);
-    std::string line;
-    std::getline(csv_file, line);  // Skip header
+    std::string header_line;
+    std::getline(csv_file, header_line);
 
+    csv::Header header(header_line);
+    header.validate();
+
+    // Check if begin/end columns are present
+    if (!header.has(csv::COL_BEGIN) || !header.has(csv::COL_END)) {
+        std::cout << "Skipping begin/end verification (columns not present in CSV).\n";
+        return;
+    }
+
+    std::string line;
     size_t row = 0;
     while (std::getline(csv_file, line)) {
         if (line.empty()) continue;
 
         std::vector<std::string> fields = _split_by_delimiter(line, ',');
-        if (fields.size() < csv::COUNT) {
+
+        std::string design = header.get(fields, csv::COL_DESIGN);
+        std::string begin_str = header.get(fields, csv::COL_BEGIN);
+        std::string end_str = header.get(fields, csv::COL_END);
+
+        if (begin_str.empty() || end_str.empty()) {
             throw std::runtime_error("CSV row " + std::to_string(row + 1) +
-                " has insufficient columns");
+                " has empty begin/end values");
         }
 
-        std::string design = fields[csv::DESIGN];
-        size_t begin = std::stoull(fields[csv::BEGIN]);
-        size_t end = std::stoull(fields[csv::END]);
+        size_t begin = std::stoull(begin_str);
+        size_t end = std::stoull(end_str);
 
         // Check length sanity
         size_t expected_len = end - begin + 1;
