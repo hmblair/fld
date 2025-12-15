@@ -246,20 +246,22 @@ void _pipeline(const PipelineConfig& config) {
     design_config.five_const = config.five_const;
     design_config.three_const = config.three_const;
     design_config.stem = config.stem;
-    design_config.barcode.stem_length = 0;  // No barcodes in design step
+    // When not predicting, barcodes are generated as part of design
+    // When predicting, barcodes are generated separately for read-count balancing
+    design_config.barcode.stem_length = config.predict ? 0 : config.barcode_length;
     design_config.barcode.stem = config.stem;
 
     _design(design_config);
 
-    // Step 5: Generate barcodes (if enabled)
     std::string final_library = tmp_dir + "/library";
 
-    if (!config.no_barcodes && config.barcode_length > 0) {
-        std::cout << "\n----- Generating barcodes -----\n\n";
+    // With --predict: generate barcodes separately for read-count balancing
+    if (config.predict && !config.no_barcodes && config.barcode_length > 0) {
+        std::cout << "\n----- Generating barcodes for read-count balancing -----\n\n";
         std::string barcodes_file = tmp_dir + "/barcodes.txt";
         _barcodes(seq_count, barcodes_file, true, config.barcode_length, config.stem);
 
-        if (config.predict) {
+        {
             // Step 6: Run rn-coverage prediction
             std::cout << "\n----- Running read count prediction -----\n\n";
 
@@ -357,27 +359,9 @@ void _pipeline(const PipelineConfig& config) {
             std::cout << "\n----- Sorting by final read counts -----\n\n";
             std::string final_output = config.output_dir + "/library";
             _sort(merged_prefix + ".csv", merged_reads, final_output, true, false, config.sort_by_reads);
-
-        } else {
-            // No prediction - print manual instructions
-            std::cout << "\n----- Barcodes generated -----\n";
-            std::cout << "  Library: " << final_library << ".csv\n";
-            std::cout << "  Barcodes: " << barcodes_file << "\n\n";
-            std::cout << "To complete the pipeline with read-count balancing:\n";
-            std::cout << "  1. Generate plain text sequences:\n";
-            std::cout << "     fld txt --output " << final_library << " " << final_library << ".csv\n";
-            std::cout << "  2. Run your read prediction tool on:\n";
-            std::cout << "     - " << final_library << ".txt\n";
-            std::cout << "     - " << barcodes_file << "\n";
-            std::cout << "  3. Save read counts to text files (one count per line)\n";
-            std::cout << "  4. Run: fld merge --library " << final_library << ".csv \\\n";
-            std::cout << "          --library-reads <library_reads.txt> \\\n";
-            std::cout << "          --barcodes " << barcodes_file << " \\\n";
-            std::cout << "          --barcode-reads <barcode_reads.txt> \\\n";
-            std::cout << "          -o " << config.output_dir << "/library\n";
         }
     } else {
-        // No barcodes - copy final library to output directory
+        // No prediction - copy designed library (with barcodes if enabled) to output
         std::filesystem::copy(final_library + ".csv",
             config.output_dir + "/library.csv",
             std::filesystem::copy_options::overwrite_existing);
