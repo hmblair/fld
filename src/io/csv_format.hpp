@@ -34,7 +34,9 @@ enum Column {
     THREE_PADDING = 6,  ///< 3' padding hairpins
     BARCODE = 7,        ///< Barcode hairpin for identification
     THREE_CONST = 8,    ///< 3' constant/primer region
-    COUNT = 9           ///< Total number of columns
+    BEGIN = 9,          ///< 1-based start position of design in full sequence
+    END = 10,           ///< 1-based end position of design in full sequence
+    COUNT = 11          ///< Total number of columns
 };
 
 /// Get the list of column names.

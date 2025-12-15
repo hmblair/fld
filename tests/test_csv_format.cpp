@@ -3,23 +3,25 @@
 
 TEST_CASE("csv::header returns correct format") {
     std::string header = csv::header();
-    CHECK(header == "index,name,sublibrary,five_const,five_padding,design,three_padding,barcode,three_const");
+    CHECK(header == "index,name,sublibrary,five_const,five_padding,design,three_padding,barcode,three_const,begin,end");
 }
 
 TEST_CASE("csv::is_valid_header accepts correct header") {
-    CHECK(csv::is_valid_header("index,name,sublibrary,five_const,five_padding,design,three_padding,barcode,three_const"));
+    CHECK(csv::is_valid_header("index,name,sublibrary,five_const,five_padding,design,three_padding,barcode,three_const,begin,end"));
+    // Also accept old format (without begin,end) as prefix
+    CHECK(csv::is_valid_header("index,name,sublibrary,five_const,five_padding,design,three_padding,barcode,three_const,begin,end,extra"));
 }
 
 TEST_CASE("csv::is_valid_header rejects incorrect header") {
     CHECK_FALSE(csv::is_valid_header("wrong,header"));
     CHECK_FALSE(csv::is_valid_header(""));
     CHECK_FALSE(csv::is_valid_header("index,name,sublibrary"));
-    CHECK_FALSE(csv::is_valid_header("INDEX,NAME,SUBLIBRARY,FIVE_CONST,FIVE_PADDING,DESIGN,THREE_PADDING,BARCODE,THREE_CONST"));
+    CHECK_FALSE(csv::is_valid_header("INDEX,NAME,SUBLIBRARY,FIVE_CONST,FIVE_PADDING,DESIGN,THREE_PADDING,BARCODE,THREE_CONST,BEGIN,END"));
 }
 
 TEST_CASE("csv::columns returns correct count") {
     const auto& cols = csv::columns();
-    CHECK(cols.size() == 9);
+    CHECK(cols.size() == 11);
 }
 
 TEST_CASE("csv::columns contains expected names") {
@@ -33,4 +35,6 @@ TEST_CASE("csv::columns contains expected names") {
     CHECK(cols[6] == "three_padding");
     CHECK(cols[7] == "barcode");
     CHECK(cols[8] == "three_const");
+    CHECK(cols[9] == "begin");
+    CHECK(cols[10] == "end");
 }

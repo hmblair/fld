@@ -20,9 +20,10 @@ static inline void _check_header(const std::string& header) {
 
 static inline Construct _from_record(const std::string& record) {
     std::vector<std::string> columns = _split_by_delimiter(record, ',');
-    if (columns.size() < csv::COUNT) {
+    // Require at least the core columns (up to THREE_CONST); begin/end are computed
+    if (columns.size() < csv::THREE_CONST + 1) {
         throw std::runtime_error("CSV record has " + std::to_string(columns.size()) +
-            " columns, expected " + std::to_string(csv::COUNT));
+            " columns, expected at least " + std::to_string(csv::THREE_CONST + 1));
     }
     size_t index = std::stoull(columns[csv::INDEX]);
     return Construct(
@@ -90,6 +91,11 @@ std::string Construct::str() const {
 }
 
 std::string Construct::csv_record() const {
+    // Calculate 1-based begin/end positions of design in full sequence
+    // Full sequence: 5'const + 5'padding + DESIGN + 3'padding + barcode + 3'const
+    size_t begin = _fivep_const.size() + _fivep_padding.size() + 1;
+    size_t end = begin + _design.size() - 1;
+
     return(
         std::to_string(_index) + "," +
         _escape_with_quotes(_name) + "," +
@@ -99,7 +105,9 @@ std::string Construct::csv_record() const {
         _design + "," +
         _threep_padding + "," +
         _barcode + "," +
-        _threep_const
+        _threep_const + "," +
+        std::to_string(begin) + "," +
+        std::to_string(end)
     );
 }
 

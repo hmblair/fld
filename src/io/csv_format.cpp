@@ -11,7 +11,9 @@ static const std::vector<std::string> _columns = {
     "design",
     "three_padding",
     "barcode",
-    "three_const"
+    "three_const",
+    "begin",
+    "end"
 };
 
 static std::string _build_header() {
