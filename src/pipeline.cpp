@@ -9,6 +9,7 @@
 #include "m2.hpp"
 #include "config/design_config.hpp"
 #include "io/csv_format.hpp"
+#include "io/fasta_io.hpp"
 #include <fstream>
 #include <iostream>
 #include <filesystem>
@@ -72,6 +73,71 @@ static int _run_command(const std::string& cmd) {
 static bool _command_exists(const std::string& cmd) {
     std::string check = "which " + cmd + " > /dev/null 2>&1";
     return std::system(check.c_str()) == 0;
+}
+
+// Sanity check: verify that begin/end columns correctly locate design in FASTA
+static void _check_design_against_fasta(
+    const std::string& csv_path,
+    const std::string& fasta_path
+) {
+    // Read FASTA sequences (order matches CSV rows)
+    std::vector<FastaEntry> fasta_entries = read_fasta(fasta_path);
+
+    // Read CSV and check each row
+    std::ifstream csv_file(csv_path);
+    std::string line;
+    std::getline(csv_file, line);  // Skip header
+
+    size_t row = 0;
+    while (std::getline(csv_file, line)) {
+        if (line.empty()) continue;
+
+        std::vector<std::string> fields = _split_by_delimiter(line, ',');
+        if (fields.size() < csv::COUNT) {
+            throw std::runtime_error("CSV row " + std::to_string(row + 1) +
+                " has insufficient columns");
+        }
+
+        std::string design = fields[csv::DESIGN];
+        size_t begin = std::stoull(fields[csv::BEGIN]);
+        size_t end = std::stoull(fields[csv::END]);
+
+        // Check length sanity
+        size_t expected_len = end - begin + 1;
+        if (expected_len != design.size()) {
+            throw std::runtime_error(
+                "Row " + std::to_string(row + 1) + ": begin/end length mismatch. " +
+                "end - begin + 1 = " + std::to_string(expected_len) +
+                ", but design length = " + std::to_string(design.size()));
+        }
+
+        // Check against FASTA sequence
+        if (row >= fasta_entries.size()) {
+            throw std::runtime_error(
+                "Row " + std::to_string(row + 1) + ": no corresponding FASTA entry");
+        }
+
+        const std::string& fasta_seq = fasta_entries[row].sequence;
+        if (end > fasta_seq.size()) {
+            throw std::runtime_error(
+                "Row " + std::to_string(row + 1) + ": end position " +
+                std::to_string(end) + " exceeds FASTA sequence length " +
+                std::to_string(fasta_seq.size()));
+        }
+
+        // Extract substring (convert 1-based to 0-based)
+        std::string extracted = fasta_seq.substr(begin - 1, expected_len);
+        if (extracted != design) {
+            throw std::runtime_error(
+                "Row " + std::to_string(row + 1) + ": design mismatch.\n" +
+                "  CSV design:  " + design + "\n" +
+                "  FASTA[" + std::to_string(begin) + ":" + std::to_string(end) + "]: " + extracted);
+        }
+
+        row++;
+    }
+
+    std::cout << "Verified " << row << " sequences: begin/end columns match design in FASTA.\n";
 }
 
 static void _stack_csv_files(
@@ -321,11 +387,18 @@ void _pipeline(const PipelineConfig& config) {
     }
 
     // Generate RNA version with T7 promoter prefix
+    std::string library_csv = config.output_dir + "/library.csv";
     std::string library_fasta = config.output_dir + "/library.fasta";
     std::string library_rna_fasta = config.output_dir + "/library-rna.fasta";
     if (std::filesystem::exists(library_fasta)) {
         std::cout << "\n----- Generating RNA library with T7 prefix -----\n\n";
         _prepend(library_fasta, library_rna_fasta, "GGGAACG", true);
+    }
+
+    // Sanity check: verify begin/end columns match design in FASTA
+    if (std::filesystem::exists(library_csv) && std::filesystem::exists(library_fasta)) {
+        std::cout << "\n----- Verifying begin/end columns -----\n\n";
+        _check_design_against_fasta(library_csv, library_fasta);
     }
 
     std::cout << "\n===== Pipeline complete =====\n";
