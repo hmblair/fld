@@ -99,10 +99,11 @@ std::string Construct::str() const {
 }
 
 std::string Construct::csv_record() const {
-    // Calculate 1-based begin/end positions of design in full sequence
+    // Calculate 1-based begin/end (exclusive) positions of design in full sequence
     // Full sequence: 5'const + 5'padding + DESIGN + 3'padding + barcode + 3'const
+    // end is exclusive, so end - begin = design.size()
     size_t begin = _fivep_const.size() + _fivep_padding.size() + 1;
-    size_t end = begin + _design.size() - 1;
+    size_t end = begin + _design.size();
 
     return(
         std::to_string(_index) + "," +

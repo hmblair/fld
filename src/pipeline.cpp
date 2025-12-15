@@ -116,12 +116,12 @@ static void _check_design_against_fasta(
         size_t begin = std::stoull(begin_str);
         size_t end = std::stoull(end_str);
 
-        // Check length sanity
-        size_t expected_len = end - begin + 1;
+        // Check length sanity (end is exclusive, so end - begin = design.size())
+        size_t expected_len = end - begin;
         if (expected_len != design.size()) {
             throw std::runtime_error(
                 "Row " + std::to_string(row + 1) + ": begin/end length mismatch. " +
-                "end - begin + 1 = " + std::to_string(expected_len) +
+                "end - begin = " + std::to_string(expected_len) +
                 ", but design length = " + std::to_string(design.size()));
         }
 
