@@ -48,7 +48,6 @@ std::vector<char> _get_polybase_arr(const char& base) {
 
 static inline const std::vector<std::string> TETRALOOPS = {"TTCG","GTGA","TACG"};
 
-enum class _SEQ_SIDE {Five, Three};
 enum class _BP_TYPE {AT, GC, GT, None};
 enum class _PAD_TYPE {Hairpin, Disordered};
 
@@ -103,15 +102,6 @@ char _complement(const char& base) {
     }
 }
 
-static inline std::string _reverse_complement(const std::string& sequence) {
-    size_t length = sequence.length();
-    std::string reverse(length, '\0');
-    for (size_t ix = 0; ix < length; ix++) {
-        reverse[ix] = _complement(sequence[length - ix - 1]);
-    }
-    return reverse;
-}
-
 static inline char _replace_polybase(
     const char& base,
     std::mt19937& gen
@@ -133,15 +123,17 @@ std::string _replace_polybases(
 
 static inline char _to_dna(char base) {
     switch (base) {
-        case _U: { return _T; }
-        default: { return base; }
+        case 'U': return 'T';
+        case 'u': return 't';
+        default:  return base;
     }
 }
 
 static inline char _to_rna(char base) {
     switch (base) {
-        case _T: { return _U; }
-        default: { return base; }
+        case 'T': return 'U';
+        case 't': return 'u';
+        default:  return base;
     }
 }
 

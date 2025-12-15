@@ -2,11 +2,8 @@
 #define INSPECT_H
 
 #include "utils.hpp"
-#include <unordered_map>
-#include <fstream>
 
 class InspectArgs : public Program {
-private:
 public:
     Arg<std::vector<std::string>> files;
     Arg<bool> sort;

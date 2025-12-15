@@ -13,6 +13,9 @@ void _random(
 
     std::mt19937 gen = _init_gen();
     std::ofstream file(output);
+    if (!file.is_open()) {
+        throw std::runtime_error("Failed to open output file: " + output);
+    }
 
     if (fasta) {
 

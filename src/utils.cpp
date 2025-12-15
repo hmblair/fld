@@ -156,17 +156,6 @@ std::vector<std::string> _load_lines(const std::string& filename) {
     return lines;
 }
 
-static inline std::string _remove_from_start(
-    const std::string& str,
-    char ch
-) {
-    size_t index = 0;
-    while (index < str.length() && str[index] == ch) {
-        index++;
-    }
-    return str.substr(index);
-}
-
 template <typename T>
 void _init_parser(
     Parser& parser,

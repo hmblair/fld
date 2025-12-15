@@ -1,4 +1,5 @@
 #include "categorize.hpp"
+#include "nuc.hpp"
 #include "io/fasta_io.hpp"
 #include <iostream>
 #include <map>
@@ -23,15 +24,6 @@ static size_t _find_bin(size_t length, const std::vector<int>& bins) {
         }
     }
     return bins.size() - 1;  // Put in largest bin if doesn't fit
-}
-
-static inline std::string to_dna(const std::string& seq) {
-    std::string result = seq;
-    for (char& c : result) {
-        if (c == 'U') c = 'T';
-        if (c == 'u') c = 't';
-    }
-    return result;
 }
 
 void _categorize(
@@ -65,7 +57,7 @@ void _categorize(
     // Read input FASTA and categorize
     for_each_fasta(input, [&](const FastaEntry& entry) {
         size_t bin_idx = _find_bin(entry.sequence.length(), sorted_bins);
-        out_files[bin_idx] << ">" << entry.name << "\n" << to_dna(entry.sequence) << "\n";
+        out_files[bin_idx] << ">" << entry.name << "\n" << _to_dna(entry.sequence) << "\n";
         counts[bin_idx]++;
     });
 

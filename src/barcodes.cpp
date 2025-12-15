@@ -220,6 +220,9 @@ void _barcodes(
     _get_barcodes(count, stem_length, config, gen, barcodes);
 
     std::ofstream file(output);
+    if (!file.is_open()) {
+        throw std::runtime_error("Failed to open output file: " + output);
+    }
     for (const std::string& barcode : barcodes) {
         file << barcode << "\n";
     }

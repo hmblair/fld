@@ -1,6 +1,7 @@
 #include "writers.hpp"
 #include "csv_format.hpp"
 #include "../utils.hpp"
+#include <stdexcept>
 
 std::string output_csv(const std::string& prefix) {
     return prefix + ".csv";
@@ -17,6 +18,9 @@ std::string output_txt(const std::string& prefix) {
 FileWriter::FileWriter(const std::string& filename) {
     _throw_if_exists(filename);
     _file.open(filename);
+    if (!_file.is_open()) {
+        throw std::runtime_error("Failed to open file for writing: " + filename);
+    }
 }
 
 FileWriter::~FileWriter() {
