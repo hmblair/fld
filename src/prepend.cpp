@@ -19,16 +19,8 @@ void _prepend(
     const std::string& prefix,
     bool overwrite
 ) {
-    _throw_if_not_exists(input_fasta);
-    _remove_if_exists(output_fasta, overwrite);
-
-    FastaOutputStream out(output_fasta);
-    size_t count = 0;
-
-    for_each_fasta(input_fasta, [&](const FastaEntry& entry) {
-        out.write(entry.name, prefix + entry.sequence);
-        count++;
-    });
+    size_t count = transform_fasta(input_fasta, output_fasta, overwrite,
+        [&prefix](const FastaEntry& entry) { return prefix + entry.sequence; });
 
     std::cout << "Prepended '" << prefix << "' to " << count << " sequences.\n";
     std::cout << "Output: " << output_fasta << "\n";
