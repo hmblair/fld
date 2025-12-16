@@ -29,7 +29,7 @@ fld pipeline -o output/ --pad-to 130 --barcode-length 10 designs.fasta
 This produces:
 - `output/library.csv` - Full library with all sequence components
 - `output/library.fasta` - Complete sequences in FASTA format
-- `output/library-rna.fasta` - Same sequences with T7 promoter prefix (GGGAACG)
+- `output/t7-library.fasta` - Same sequences with T7 promoter prefix (GGGAACG)
 
 ### With Read-Count Prediction
 
@@ -60,7 +60,7 @@ fld pipeline -o output/ --pad-to 130 --barcode-length 10 designs.fasta
 output/
 ├── library.csv         # Final library (all components)
 ├── library.fasta       # Complete sequences
-├── library-rna.fasta   # With T7 prefix (GGGAACG)
+├── t7-library.fasta    # With T7 prefix (GGGAACG)
 └── tmp/                # Intermediate files
 ```
 

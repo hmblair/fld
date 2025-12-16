@@ -387,7 +387,7 @@ void _pipeline(const PipelineConfig& config) {
     // Generate RNA version with T7 promoter prefix
     std::string library_csv = config.output_dir + "/library.csv";
     std::string library_fasta = config.output_dir + "/library.fasta";
-    std::string library_rna_fasta = config.output_dir + "/library-rna.fasta";
+    std::string library_rna_fasta = config.output_dir + "/t7-library.fasta";
     if (std::filesystem::exists(library_fasta)) {
         std::cout << "\n----- Generating RNA library with T7 prefix -----\n\n";
         _prepend(library_fasta, library_rna_fasta, "GGGAACG", true);
