@@ -13,6 +13,7 @@ struct DesignConfig {
 
     // Padding
     size_t pad_to_length = 0;
+    bool skip_padding = false;
 
     // Barcoding
     BarcodeConfig barcode;

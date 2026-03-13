@@ -2,7 +2,9 @@
 #include "preprocess.hpp"
 #include "library.hpp"
 #include "barcodes.hpp"
+#include "padding.hpp"
 #include "merge.hpp"
+#include "merge_padding.hpp"
 #include "sort.hpp"
 #include "totxt.hpp"
 #include "prepend.hpp"
@@ -49,7 +51,8 @@ PipelineArgs::PipelineArgs() : Program(_PARSER_NAME),
     _parser.add_description(
         "Run the complete library design pipeline.\n\n"
         "Basic mode: preprocess, pad, and generate barcodes.\n"
-        "With --predict: also predict reads, merge barcodes with read balancing,\n"
+        "With --predict: predict reads for padding, designs, and barcodes;\n"
+        "                merge padding and barcodes with read balancing;\n"
         "                predict final reads, and optionally sort output.\n\n"
         "Default output order preserves input order (by sublibrary and index).\n"
         "Use --sort-by-reads to sort by predicted read counts instead.\n\n"
@@ -182,6 +185,61 @@ static void _stack_csv_files(
     }
 }
 
+// Write a .txt file by concatenating specific CSV columns per row.
+static void _csv_columns_to_txt(
+    const std::string& csv_path,
+    const std::string& output_path,
+    const std::vector<std::string>& columns
+) {
+    std::ifstream in(csv_path);
+    std::string header_line;
+    std::getline(in, header_line);
+    csv::Header header(header_line);
+
+    std::ofstream out(output_path);
+    std::string line;
+    while (std::getline(in, line)) {
+        if (line.empty()) continue;
+        std::vector<std::string> fields = _split_by_delimiter(line, ',');
+        std::string seq;
+        for (const auto& col : columns) {
+            seq += header.get(fields, col);
+        }
+        out << seq << "\n";
+    }
+}
+
+// Run tokenize + predict + extract for a single sequence set.
+// Returns the path to the extracted reads .txt file.
+static std::string _predict_reads(
+    const std::string& input_txt,
+    const std::string& tokens_path,
+    const std::string& pred_dir,
+    const std::string& reads_path,
+    const std::string& label
+) {
+    std::cout << "Tokenizing " << label << "...\n";
+    if (_run_command("rn-coverage tokenize " + input_txt + " " + tokens_path) != 0) {
+        throw std::runtime_error("Failed to tokenize " + label);
+    }
+
+    std::cout << "\nPredicting " << label << " read counts...\n";
+    if (_run_command("rn-coverage predict " + tokens_path + " -o " + pred_dir) != 0) {
+        throw std::runtime_error("Failed to predict " + label + " read counts");
+    }
+
+    // The prediction output .h5 has the same basename as the input .h5
+    std::string tokens_basename = std::filesystem::path(tokens_path).filename().string();
+    std::string pred_h5 = pred_dir + "/" + tokens_basename;
+
+    std::cout << "\nExtracting " << label << " predictions...\n";
+    if (_run_command("rn-coverage extract " + pred_h5 + " " + reads_path) != 0) {
+        throw std::runtime_error("Failed to extract " + label + " predictions");
+    }
+
+    return reads_path;
+}
+
 void _pipeline(const PipelineConfig& config) {
     // Check/create output directory
     if (std::filesystem::exists(config.output_dir)) {
@@ -250,130 +308,179 @@ void _pipeline(const PipelineConfig& config) {
     }
     std::cout << "  Total sequences: " << seq_count << "\n";
 
-    // Step 4: Design (add padding)
+    // Step 4: Design
     std::cout << "\n----- Designing library -----\n\n";
     DesignConfig design_config;
     design_config.input_path = stacked_csv;
     design_config.output_prefix = tmp_dir + "/library";
     design_config.overwrite = true;
     design_config.pad_to_length = config.pad_to;
-    design_config.five_const = config.five_const;
-    design_config.three_const = config.three_const;
     design_config.stem = config.stem;
-    // When not predicting, barcodes are generated as part of design
-    // When predicting, barcodes are generated separately for read-count balancing
-    design_config.barcode.stem_length = config.predict ? 0 : config.barcode_length;
+    // When predicting, skip padding and barcodes — they are generated separately
+    // for read-count balancing. Also leave constants empty so intermediate
+    // predictions only see the components finalized so far.
+    if (config.predict) {
+        design_config.skip_padding = true;
+        design_config.barcode.stem_length = 0;
+        design_config.five_const = "";
+        design_config.three_const = "";
+    } else {
+        design_config.five_const = config.five_const;
+        design_config.three_const = config.three_const;
+        design_config.barcode.stem_length = config.barcode_length;
+    }
     design_config.barcode.stem = config.stem;
 
     _design(design_config);
 
     std::string final_library = tmp_dir + "/library";
 
-    // With --predict: generate barcodes separately for read-count balancing
+    // With --predict: 5-step read-count balancing for padding and barcodes
     if (config.predict && !config.no_barcodes && config.barcode_length > 0) {
+
+        // Check prerequisites
+        if (!_command_exists("rn-coverage")) {
+            throw std::runtime_error(
+                "rn-coverage not found on PATH. Install it and add to PATH, "
+                "or run without --predict and follow manual instructions.");
+        }
+
+        std::string predict_dir = tmp_dir + "/predictions";
+        std::filesystem::create_directories(predict_dir);
+
+        // Generate padding and barcodes separately
+        std::cout << "\n----- Generating padding for read-count balancing -----\n\n";
+        std::string padding_file = tmp_dir + "/padding.txt";
+        _generate_padding(final_library + ".csv", config.pad_to, config.stem, padding_file, true);
+
         std::cout << "\n----- Generating barcodes for read-count balancing -----\n\n";
         std::string barcodes_file = tmp_dir + "/barcodes.txt";
         _barcodes(seq_count, barcodes_file, true, config.barcode_length, config.stem);
 
+        // Extract design-only sequences for prediction
+        std::string designs_txt = tmp_dir + "/designs.txt";
+        _csv_columns_to_txt(final_library + ".csv", designs_txt, {csv::COL_DESIGN});
+
+        // ===== PREDICT 1: padding sequences alone =====
+        std::cout << "\n----- [1/5] Predicting padding read counts -----\n\n";
+        std::string padding_reads = tmp_dir + "/padding_reads.txt";
+        _predict_reads(padding_file,
+            tmp_dir + "/padding_tokens.h5",
+            predict_dir + "/padding",
+            padding_reads, "padding");
+
+        // ===== PREDICT 2: design sequences alone =====
+        std::cout << "\n----- [2/5] Predicting design read counts -----\n\n";
+        std::string design_reads = tmp_dir + "/design_reads.txt";
+        _predict_reads(designs_txt,
+            tmp_dir + "/design_tokens.h5",
+            predict_dir + "/designs",
+            design_reads, "designs");
+
+        // ===== PREDICT 3: barcode sequences alone =====
+        std::cout << "\n----- [3/5] Predicting barcode read counts -----\n\n";
+        std::string barcode_reads = tmp_dir + "/barcode_reads.txt";
+        _predict_reads(barcodes_file,
+            tmp_dir + "/barcode_tokens.h5",
+            predict_dir + "/barcodes",
+            barcode_reads, "barcodes");
+
+        // ===== MERGE ROUND 1: attach padding =====
+        std::cout << "\n----- Merging padding with read-count balancing -----\n\n";
+        std::string padded_prefix = tmp_dir + "/padded";
+        _merge_padding(final_library + ".csv", design_reads, padding_file, padding_reads,
+            padded_prefix, true);
+
+        // ===== PREDICT 4: padding + design (no constants, no barcodes) =====
+        std::cout << "\n----- [4/5] Predicting padded design read counts -----\n\n";
+        std::string padded_txt = tmp_dir + "/padded.txt";
+        _csv_columns_to_txt(padded_prefix + ".csv", padded_txt,
+            {csv::COL_FIVE_PADDING, csv::COL_DESIGN});
+
+        std::string padded_reads = tmp_dir + "/padded_reads.txt";
+        _predict_reads(padded_txt,
+            tmp_dir + "/padded_tokens.h5",
+            predict_dir + "/padded",
+            padded_reads, "padded designs");
+
+        // ===== MERGE ROUND 2: attach barcodes =====
+        std::cout << "\n----- Merging barcodes with read-count balancing -----\n\n";
+        std::string merged_prefix = tmp_dir + "/merged";
+        _merge(padded_prefix + ".csv", padded_reads, barcodes_file, barcode_reads,
+            merged_prefix, true, config.sort_by_reads);
+
+        // ===== PREDICT 5: final full library (with constants) =====
+        // Constants were left empty in the CSV so intermediate predictions
+        // excluded them. Write the final .txt with constants prepended/appended.
+        std::cout << "\n----- [5/5] Predicting final read counts -----\n\n";
+        std::string final_txt = tmp_dir + "/final.txt";
         {
-            // Step 6: Run rn-coverage prediction
-            std::cout << "\n----- Running read count prediction -----\n\n";
+            std::ifstream fin(merged_prefix + ".csv");
+            std::string hdr_line;
+            std::getline(fin, hdr_line);
+            csv::Header hdr(hdr_line);
 
-            // Check prerequisites
-            if (!_command_exists("rn-coverage")) {
-                throw std::runtime_error(
-                    "rn-coverage not found on PATH. Install it and add to PATH, "
-                    "or run without --predict and follow manual instructions.");
+            std::ofstream fout(final_txt);
+            std::string fline;
+            while (std::getline(fin, fline)) {
+                if (fline.empty()) continue;
+                std::vector<std::string> fields = _split_by_delimiter(fline, ',');
+                std::string seq = config.five_const +
+                                  hdr.get(fields, csv::COL_FIVE_PADDING) +
+                                  hdr.get(fields, csv::COL_DESIGN) +
+                                  hdr.get(fields, csv::COL_THREE_PADDING) +
+                                  hdr.get(fields, csv::COL_BARCODE) +
+                                  config.three_const;
+                fout << seq << "\n";
             }
-
-            std::string predict_dir = tmp_dir + "/predictions";
-            std::filesystem::create_directories(predict_dir);
-
-            // Generate .txt for rn-coverage tokenization
-            _to_txt(final_library + ".csv", final_library, true);
-
-            // Tokenize library
-            std::string library_tokens = tmp_dir + "/library_tokens.h5";
-            std::cout << "Tokenizing library...\n";
-            if (_run_command("rn-coverage tokenize " + final_library + ".txt " + library_tokens) != 0) {
-                throw std::runtime_error("Failed to tokenize library sequences");
-            }
-
-            // Tokenize barcodes
-            std::string barcode_tokens = tmp_dir + "/barcode_tokens.h5";
-            std::cout << "\nTokenizing barcodes...\n";
-            if (_run_command("rn-coverage tokenize " + barcodes_file + " " + barcode_tokens) != 0) {
-                throw std::runtime_error("Failed to tokenize barcode sequences");
-            }
-
-            // Set up prediction output directories
-            std::string library_pred_dir = predict_dir + "/library";
-            std::string barcode_pred_dir = predict_dir + "/barcodes";
-
-            // Run predictions
-            std::cout << "\nPredicting library read counts...\n";
-            if (_run_command("rn-coverage predict " + library_tokens + " -o " + library_pred_dir) != 0) {
-                throw std::runtime_error("Failed to predict library read counts");
-            }
-
-            std::cout << "\nPredicting barcode read counts...\n";
-            if (_run_command("rn-coverage predict " + barcode_tokens + " -o " + barcode_pred_dir) != 0) {
-                throw std::runtime_error("Failed to predict barcode read counts");
-            }
-
-            // Extract predictions to text files
-            std::string library_reads = tmp_dir + "/library_reads.txt";
-            std::string barcode_reads = tmp_dir + "/barcode_reads.txt";
-
-            // The prediction output file has the same name as the input .h5 file
-            std::string library_pred_h5 = library_pred_dir + "/library_tokens.h5";
-            std::string barcode_pred_h5 = barcode_pred_dir + "/barcode_tokens.h5";
-
-            std::cout << "\nExtracting predictions...\n";
-            if (_run_command("rn-coverage extract " + library_pred_h5 + " " + library_reads) != 0) {
-                throw std::runtime_error("Failed to extract library predictions");
-            }
-            if (_run_command("rn-coverage extract " + barcode_pred_h5 + " " + barcode_reads) != 0) {
-                throw std::runtime_error("Failed to extract barcode predictions");
-            }
-
-            // Step 7: Merge barcodes with read-count balancing
-            std::cout << "\n----- Merging barcodes with read-count balancing -----\n\n";
-            std::string merged_prefix = tmp_dir + "/merged";
-            _merge(final_library + ".csv", library_reads, barcodes_file, barcode_reads, merged_prefix, true, config.sort_by_reads);
-
-            // Step 8: Predict reads for merged sequences
-            std::cout << "\n----- Predicting final read counts -----\n\n";
-
-            // Generate .txt for rn-coverage tokenization
-            _to_txt(merged_prefix + ".csv", merged_prefix, true);
-
-            std::string merged_tokens = tmp_dir + "/merged_tokens.h5";
-            std::cout << "Tokenizing merged sequences...\n";
-            if (_run_command("rn-coverage tokenize " + merged_prefix + ".txt " + merged_tokens) != 0) {
-                throw std::runtime_error("Failed to tokenize merged sequences");
-            }
-
-            std::string merged_pred_dir = predict_dir + "/merged";
-
-            std::cout << "\nPredicting merged read counts...\n";
-            if (_run_command("rn-coverage predict " + merged_tokens + " -o " + merged_pred_dir) != 0) {
-                throw std::runtime_error("Failed to predict merged read counts");
-            }
-
-            std::string merged_pred_h5 = merged_pred_dir + "/merged_tokens.h5";
-            std::string merged_reads = tmp_dir + "/merged_reads.txt";
-
-            std::cout << "\nExtracting predictions...\n";
-            if (_run_command("rn-coverage extract " + merged_pred_h5 + " " + merged_reads) != 0) {
-                throw std::runtime_error("Failed to extract merged predictions");
-            }
-
-            // Step 9: Sort by final read counts
-            std::cout << "\n----- Sorting by final read counts -----\n\n";
-            std::string final_output = config.output_dir + "/library";
-            _sort(merged_prefix + ".csv", merged_reads, final_output, true, false, config.sort_by_reads);
         }
+
+        std::string final_reads = tmp_dir + "/final_reads.txt";
+        _predict_reads(final_txt,
+            tmp_dir + "/final_tokens.h5",
+            predict_dir + "/final",
+            final_reads, "final library");
+
+        // Fill in constant regions in the merged CSV before final output
+        {
+            std::ifstream fin(merged_prefix + ".csv");
+            std::string hdr_line;
+            std::getline(fin, hdr_line);
+            csv::Header hdr(hdr_line);
+
+            int five_idx = hdr.index_of(csv::COL_FIVE_CONST);
+            int three_idx = hdr.index_of(csv::COL_THREE_CONST);
+
+            std::string primerized_csv = merged_prefix + "_primerized.csv";
+            std::ofstream fout(primerized_csv);
+            fout << hdr_line << "\n";
+            std::string fline;
+            while (std::getline(fin, fline)) {
+                if (fline.empty()) continue;
+                std::vector<std::string> fields = _split_by_delimiter(fline, ',');
+                if (five_idx >= 0 && static_cast<size_t>(five_idx) < fields.size()) {
+                    fields[five_idx] = config.five_const;
+                }
+                if (three_idx >= 0 && static_cast<size_t>(three_idx) < fields.size()) {
+                    fields[three_idx] = config.three_const;
+                }
+                for (size_t i = 0; i < fields.size(); i++) {
+                    fout << _quote_csv_field(fields[i]);
+                    if (i < fields.size() - 1) fout << ",";
+                }
+                fout << "\n";
+            }
+            fout.close();
+
+            // Replace merged CSV with primerized version
+            std::filesystem::rename(primerized_csv, merged_prefix + ".csv");
+        }
+
+        // Sort by final read counts
+        std::cout << "\n----- Sorting by final read counts -----\n\n";
+        std::string final_output = config.output_dir + "/library";
+        _sort(merged_prefix + ".csv", final_reads, final_output, true, false, config.sort_by_reads);
+
     } else {
         // No prediction - copy designed library (with barcodes if enabled) to output
         std::filesystem::copy(final_library + ".csv",

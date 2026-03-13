@@ -343,7 +343,9 @@ static inline void _add_library_elements(
     std::cout << "Processing " << std::to_string(library.size()) << " sequences." << std::endl;
     std::cout << "───────────────────────────────────────────────\n";
 
-    library.pad(config.pad_to_length, config.stem);
+    if (!config.skip_padding) {
+        library.pad(config.pad_to_length, config.stem);
+    }
     if (config.barcode.is_enabled()) {
         std::cout << std::endl;
         library.barcode(config.barcode.stem_length, config.barcode.stem);

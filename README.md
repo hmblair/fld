@@ -33,7 +33,7 @@ This produces:
 
 ### With Read-Count Prediction
 
-If you have `rn-coverage` installed, add `--predict` to automatically balance barcodes by predicted read counts:
+If you have `rn-coverage` installed, add `--predict` to automatically balance padding and barcodes by predicted read counts:
 
 ```bash
 fld pipeline -o output/ --pad-to 130 --barcode-length 10 --predict designs.fasta
@@ -97,12 +97,14 @@ fld pipeline -o output/ --pad-to 130 --barcode-length 10 --predict designs.fasta
 **Requires:** `rn-coverage` on PATH
 
 **What it does:**
-1. All basic steps (preprocess, pad, barcode)
-2. Predicts read counts for library sequences
-3. Predicts read counts for barcodes
-4. Merges barcodes using read-count balancing (low-read designs get high-read barcodes)
-5. Predicts final read counts for merged sequences
-6. Verifies begin/end columns match design positions
+1. Preprocesses input FASTA
+2. Generates padding, barcodes, and design sequences separately
+3. Predicts read counts for each component in isolation
+4. Merges padding using read-count balancing within each design-length group
+5. Predicts read counts for padded designs
+6. Merges barcodes using read-count balancing (low-read designs get high-read barcodes)
+7. Predicts final read counts for the fully assembled library
+8. Verifies begin/end columns match design positions
 
 ### Example 6: Strict GC/GU Control
 
@@ -168,7 +170,7 @@ Optional metadata columns (`index`, `name`, `sublibrary`, `begin`, `end`) are us
 | `--barcode-length` | 10 | Barcode stem length (0 to disable) |
 | `--no-barcodes` | false | Skip barcode generation entirely |
 | `--m2` | false | Generate M2-seq complement sequences |
-| `--predict` | false | Run rn-coverage prediction and barcode balancing |
+| `--predict` | false | Run rn-coverage prediction with padding and barcode balancing |
 | `--sort-by-reads` | false | Sort output by predicted reads (default: preserve input order) |
 | `--overwrite` | false | Overwrite existing output directory |
 | `--five-const` | ACTCGAGTAGAGTCGAAAA | 5' constant sequence |
@@ -354,9 +356,16 @@ Barcodes are hairpin structures with:
 
 ## Read-Count Balancing
 
-When using `--predict`, barcodes are assigned to balance coverage:
+When using `--predict`, both padding and barcodes are assigned to balance coverage using a two-round inverse pairing strategy:
+
+**Round 1 — Padding:** Within each group of designs that share the same length (and therefore need the same amount of padding):
 1. Sort designs by predicted reads (ascending)
+2. Sort padding sequences by predicted reads (descending)
+3. Pair them: low-read designs get high-read padding
+
+**Round 2 — Barcodes:** On the now-padded library:
+1. Sort padded designs by predicted reads (ascending)
 2. Sort barcodes by predicted reads (descending)
 3. Pair them: low-read designs get high-read barcodes
 
-This helps equalize read coverage across the library.
+This two-round approach runs 5 prediction steps total, predicting each component in isolation first, then predicting the assembled combinations after each merge.
