@@ -146,12 +146,17 @@
     \draw[gray, thin, -stealth] (\arrL, \arrTop) -- (\arrL, \arrBot);
     \draw[gray, thin, stealth-] (\arrR, \arrTop) -- (\arrR, \arrBot);
 
-    % Label on left: generation method
-    \node[font=\scriptsize\itshape, anchor=east, align=right] at ({\lx - 0.35}, {0.7 - 1*(\bh+\bg) - \bh/2})
-        {GC-constrained\\random hairpins};
+    % Arrow labels
+    \node[font={\fontsize{5.5}{6.5}\selectfont}, gray, rotate=90, anchor=center] at ({\arrL - 0.15}, {(\arrTop+\arrBot)/2})
+        {Reads};
+    \node[font={\fontsize{5.5}{6.5}\selectfont}, gray, rotate=-90, anchor=center] at ({\arrR + 0.15}, {(\arrTop+\arrBot)/2})
+        {Reads};
 
-    \node[font=\scriptsize\itshape, anchor=center] at ({\lx + \tw/2}, -0.55)
-        {Inverse-read pairing};
+    % Caption below, pointing up to bottom padding bar
+    \pgfmathsetmacro{\lastRowMid}{\bintwotop - 1*(\bh+\bg) - \bh/2}
+    \node[font=\scriptsize\itshape, anchor=north, align=center] (hplabel) at ({\lx + \pdB/2}, -0.65)
+        {GC-constrained\\hairpin trains};
+    \draw[thin] (hplabel.north) -- ({\lx + \pdB/2}, {\bintwotop - 1*(\bh+\bg) - \bh});
 
 
 \end{scope}
