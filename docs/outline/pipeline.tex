@@ -94,7 +94,7 @@
     \node[font=\scriptsize\itshape, anchor=center] at (0, -0.15)
         {Resolve ambiguous bases};
 
-    \draw[thick, rounded corners=3pt] (-\nw/2, -0.5) rectangle (\nw/2, 1.15);
+
 \end{scope}
 
 % 3-stage arrow: down from node, right to segment x, down to construct
@@ -138,22 +138,22 @@
         \draw[thin] ({\lx+\pdB}, {\yy-\bh/2}) -- ({\lx+\pdB+\gapmid}, {\yy-\bh/2});
     }
 
-    % Sort arrows: left (pad reads descending)
+    % Sort arrows: single grey arrow spanning all rows on each side
+    \pgfmathsetmacro{\arrTop}{0.7 - \bh/2}
+    \pgfmathsetmacro{\arrBot}{\bintwotop - 1*(\bh+\bg) - \bh/2}
     \pgfmathsetmacro{\arrL}{\lx - 0.2}
-    \draw[thin, -stealth] (\arrL, 0.7) -- (\arrL, {0.7 - 2*(\bh+\bg) - \bh});
-    \draw[thin, -stealth] (\arrL, \bintwotop) -- (\arrL, {\bintwotop - 1*(\bh+\bg) - \bh});
-
-    % Sort arrows: right (design reads ascending)
     \pgfmathsetmacro{\arrR}{\lx + \tw + 0.2}
-    \draw[thin, stealth-] (\arrR, 0.7) -- (\arrR, {0.7 - 2*(\bh+\bg) - \bh});
-    \draw[thin, stealth-] (\arrR, \bintwotop) -- (\arrR, {\bintwotop - 1*(\bh+\bg) - \bh});
+    \draw[gray, thin, -stealth] (\arrL, \arrTop) -- (\arrL, \arrBot);
+    \draw[gray, thin, stealth-] (\arrR, \arrTop) -- (\arrR, \arrBot);
+
+    % Label on left: generation method
+    \node[font=\scriptsize\itshape, anchor=east, align=right] at ({\lx - 0.35}, {0.7 - 1*(\bh+\bg) - \bh/2})
+        {GC-constrained\\random hairpins};
 
     \node[font=\scriptsize\itshape, anchor=center] at ({\lx + \tw/2}, -0.55)
         {Inverse-read pairing};
-    \node[font=\scriptsize\itshape, anchor=center] at ({\lx + \tw/2}, -0.85)
-        {GC/GU constraints};
 
-    \draw[thick, rounded corners=3pt] (-\nw/2, -1.15) rectangle (\nw/2, 0.95);
+
 \end{scope}
 
 % 3-stage arrow: up from node, right to segment x, up to construct
@@ -183,7 +183,7 @@
     \node[font=\scriptsize\itshape, anchor=center] at (0, -0.55)
         {Hamming $\geq 2$, GC/GU constr.};
 
-    \draw[thick, rounded corners=3pt] (-\nw/2, -1.35) rectangle (\nw/2, 0.9);
+
 \end{scope}
 
 % 3-stage arrow: up from node, left to segment x, up to construct
@@ -201,7 +201,7 @@
     \node[font=\small, anchor=center] at (0, 0.05)
         {\textit{T7 promoter $+$ primers}};
 
-    \draw[thick, rounded corners=3pt] (-\nw/2, -0.3) rectangle (\nw/2, 0.7);
+
 \end{scope}
 
 % 3-stage arrow: down from node, left to segment x, down to construct
