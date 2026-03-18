@@ -107,29 +107,59 @@
 % 2. PADDING (bottom-left)
 % ============================================================
 \begin{scope}[shift={(\nlx, \by)}]
-    \node[font=\bfseries, anchor=north] at (0, -1.1) {2. Padding};
+    \node[font=\bfseries, anchor=north] at (0, -1.55) {2. Padding};
 
-    % Paired-bar schematic
-    \def\bh{0.18}
-    \def\bg{0.08}
-    \foreach \pl/\dl/\i in {1.1/0.35/0, 0.75/0.7/1, 0.35/1.1/2} {
-        \pgfmathsetmacro{\yy}{0.65 - \i*(\bh+\bg)}
-        \draw[thick, fill=green1!35] (-1.3, \yy) rectangle ({-1.3+\pl}, {\yy-\bh});
-        \draw[thick, fill=purp1!35] ({1.3-\dl}, \yy) rectangle (1.3, {\yy-\bh});
-        \draw[thin, purp1!50] ({-1.3+\pl}, {\yy-\bh/2}) -- ({1.3-\dl}, {\yy-\bh/2});
+    % Two length bins: all rows same total width, gap at pad|design boundary
+    \def\bh{0.16}
+    \def\bg{0.05}
+    \def\binsep{0.14}
+    \def\tw{1.6}       % total width (pad+gap+design)
+    \def\gapmid{0.25}  % gap between pad and design
+    \def\lx{-0.8}      % left edge (aligned for all rows)
+
+    % Bin 1: 3 rows, pad=0.35, design=1.0
+    \def\pdA{0.35}
+    \pgfmathsetmacro{\dwA}{\tw - \gapmid - \pdA}
+    \foreach \i in {0, 1, 2} {
+        \pgfmathsetmacro{\yy}{0.7 - \i*(\bh+\bg)}
+        \draw[thick, fill=green1!40] (\lx, \yy) rectangle ({\lx+\pdA}, {\yy-\bh});
+        \draw[thick, fill=purp1!40] ({\lx+\pdA+\gapmid}, \yy) rectangle ({\lx+\tw}, {\yy-\bh});
+        \draw[thin] ({\lx+\pdA}, {\yy-\bh/2}) -- ({\lx+\pdA+\gapmid}, {\yy-\bh/2});
     }
 
-    \node[font=\scriptsize\itshape, anchor=center] at (0, -0.2)
-        {Inverse-rank pairing};
-    \node[font=\scriptsize\itshape, anchor=center] at (0, -0.55)
+    % Bin 2: 2 rows, pad=0.75, design=0.6 (same total)
+    \def\pdB{0.75}
+    \pgfmathsetmacro{\dwB}{\tw - \gapmid - \pdB}
+    \pgfmathsetmacro{\bintwotop}{0.7 - 3*(\bh+\bg) - \binsep}
+    \foreach \i in {0, 1} {
+        \pgfmathsetmacro{\yy}{\bintwotop - \i*(\bh+\bg)}
+        \draw[thick, fill=green1!40] (\lx, \yy) rectangle ({\lx+\pdB}, {\yy-\bh});
+        \draw[thick, fill=purp1!40] ({\lx+\pdB+\gapmid}, \yy) rectangle ({\lx+\tw}, {\yy-\bh});
+        \draw[thin] ({\lx+\pdB}, {\yy-\bh/2}) -- ({\lx+\pdB+\gapmid}, {\yy-\bh/2});
+    }
+
+    % Sort arrows: left (pad reads descending)
+    \pgfmathsetmacro{\arrL}{\lx - 0.2}
+    \draw[thin, -stealth] (\arrL, 0.7) -- (\arrL, {0.7 - 2*(\bh+\bg) - \bh});
+    \draw[thin, -stealth] (\arrL, \bintwotop) -- (\arrL, {\bintwotop - 1*(\bh+\bg) - \bh});
+
+    % Sort arrows: right (design reads ascending)
+    \pgfmathsetmacro{\arrR}{\lx + \tw + 0.2}
+    \draw[thin, stealth-] (\arrR, 0.7) -- (\arrR, {0.7 - 2*(\bh+\bg) - \bh});
+    \draw[thin, stealth-] (\arrR, \bintwotop) -- (\arrR, {\bintwotop - 1*(\bh+\bg) - \bh});
+
+    \node[font=\scriptsize\itshape, anchor=center] at ({\lx + \tw/2}, -0.55)
+        {Inverse-read pairing};
+    \node[font=\scriptsize\itshape, anchor=center] at ({\lx + \tw/2}, -0.85)
         {GC/GU constraints};
 
-    \draw[thick, rounded corners=3pt] (-\nw/2, -1.35) rectangle (\nw/2, 0.9);
+    \draw[thick, rounded corners=3pt] (-\nw/2, -1.15) rectangle (\nw/2, 0.95);
 \end{scope}
 
 % 3-stage arrow: up from node, right to segment x, up to construct
 \draw[thick, -stealth]
     (\nlx, {\by+0.9}) -- (\nlx, \armBot)
+
     -- (\midPadAvg, \armBot)
     -- (\midPadAvg, \stackBot);
 
