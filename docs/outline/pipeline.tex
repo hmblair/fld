@@ -13,123 +13,140 @@
 \definecolor{green1}{HTML}{6DDB5C}
 \definecolor{purp1}{HTML}{A44694}
 
+% Block x-offsets (adjust these to reposition entire blocks)
+\newcommand{\inputX}{0}
+\newcommand{\padX}{2.2}
+\newcommand{\barcX}{6.1}
+\newcommand{\outX}{10.0}
+
+% Shared bar chart parameters
+\newcommand{\byy}{0.1}   % top of bar region
+\newcommand{\bww}{0.35}  % bar row height
+\newcommand{\bgg}{0.08}  % gap between bars
+\newcommand{\barspan}{3.2} % total width of a bar chart pair
+
 \begin{document}
 \begin{tikzpicture}
 
 % ============================================================
 % INPUTS
 % ============================================================
-\node[align=center] at (0, 0.5) {\textbf{Inputs}};
+\begin{scope}[xshift=\inputX cm]
+    \node[align=center] at (0, 0.5) {\textbf{Inputs}};
 
-\draw[thick, rounded corners=2pt] (-1.1, 0.15) rectangle (1.1, -0.25);
-\node at (0, -0.05) {\small Designs};
+    \draw[thick, rounded corners=2pt] (-1.1, 0.15) rectangle (1.1, -0.25);
+    \node at (0, -0.05) {\small Designs};
 
-\draw[thick, rounded corners=2pt] (-1.1, -0.55) rectangle (1.1, -0.95);
-\node at (0, -0.75) {\small Padding};
+    \draw[thick, rounded corners=2pt] (-1.1, -0.55) rectangle (1.1, -0.95);
+    \node at (0, -0.75) {\small Padding};
 
-\draw[thick, rounded corners=2pt] (-1.1, -1.25) rectangle (1.1, -1.65);
-\node at (0, -1.45) {\small Barcodes};
+    \draw[thick, rounded corners=2pt] (-1.1, -1.25) rectangle (1.1, -1.65);
+    \node at (0, -1.45) {\small Barcodes};
 
-\draw[thick, -stealth] (0, -0.25) -- (0, -0.55);
+    \draw[thick, -stealth] (0, -0.25) -- (0, -0.55);
 
-% Merge
-\draw[thick, rounded corners=2pt] (1.1, -0.05) -- (1.5, -0.05) -- (1.5, -0.75);
-\draw[thick]                      (1.1, -0.75) -- (1.5, -0.75);
-\draw[thick, rounded corners=2pt] (1.1, -1.45) -- (1.5, -1.45) -- (1.5, -0.75);
+    % Merge
+    \draw[thick, rounded corners=2pt] (1.1, -0.05) -- (1.5, -0.05) -- (1.5, -0.75);
+    \draw[thick]                      (1.1, -0.75) -- (1.5, -0.75);
+    \draw[thick, rounded corners=2pt] (1.1, -1.45) -- (1.5, -1.45) -- (1.5, -0.75);
+\end{scope}
 
 % ============================================================
-% RANDOM PATH (shortcut over top)
+% PADDING ASSIGNMENT
 % ============================================================
+\begin{scope}[xshift=\padX cm]
+    \node[align=center] at (1.6, 0.5) {\textbf{Padding Assignment}};
+
+    % Design bars (ascending read count)
+    \foreach \len/\i in {0.4/0, 0.7/1, 1.0/2, 1.4/3} {
+        \pgfmathsetmacro{\yy}{\byy - \i*(\bww+\bgg)}
+        \draw[thick, fill=purp1!40] (0, \yy) rectangle ({\len}, {\yy-\bww});
+    }
+
+    % Padding bars (descending, right-aligned)
+    \foreach \len/\i in {1.4/0, 1.0/1, 0.7/2, 0.4/3} {
+        \pgfmathsetmacro{\yy}{\byy - \i*(\bww+\bgg)}
+        \draw[thick, fill=green1!40] ({\barspan-\len}, \yy) rectangle (\barspan, {\yy-\bww});
+    }
+
+    % Connecting lines
+    \foreach \dl/\pl/\i in {0.4/1.4/0, 0.7/1.0/1, 1.0/0.7/2, 1.4/0.4/3} {
+        \pgfmathsetmacro{\yy}{\byy - \i*(\bww+\bgg) - \bww/2}
+        \draw[thick, purp1!60] (\dl, \yy) -- ({\barspan-\pl}, \yy);
+    }
+
+    % Labels
+    \node[font=\scriptsize, anchor=south] at (0.7, \byy) {designs $\uparrow$};
+    \node[font=\scriptsize, anchor=south] at (2.5, \byy) {$\downarrow$ padding};
+    \node[font=\scriptsize\itshape] at (1.6, -1.70) {Inverse-rank pairing};
+\end{scope}
+
+% ============================================================
+% BARCODE ASSIGNMENT
+% ============================================================
+\begin{scope}[xshift=\barcX cm]
+    \node[align=center] at (1.6, 0.5) {\textbf{Barcode Assignment}};
+
+    % Design bars (ascending)
+    \foreach \len/\i in {0.4/0, 0.7/1, 1.0/2, 1.4/3} {
+        \pgfmathsetmacro{\yy}{\byy - \i*(\bww+\bgg)}
+        \draw[thick, fill=purp1!40] (0, \yy) rectangle ({\len}, {\yy-\bww});
+    }
+
+    % Barcode bars (descending)
+    \foreach \len/\i in {1.4/0, 1.0/1, 0.7/2, 0.4/3} {
+        \pgfmathsetmacro{\yy}{\byy - \i*(\bww+\bgg)}
+        \draw[thick, fill=gold1!50] ({\barspan-\len}, \yy) rectangle (\barspan, {\yy-\bww});
+    }
+
+    % Connecting lines
+    \foreach \dl/\pl/\i in {0.4/1.4/0, 0.7/1.0/1, 1.0/0.7/2, 1.4/0.4/3} {
+        \pgfmathsetmacro{\yy}{\byy - \i*(\bww+\bgg) - \bww/2}
+        \draw[thick, purp1!60] (\dl, \yy) -- ({\barspan-\pl}, \yy);
+    }
+
+    % Labels
+    \node[font=\scriptsize, anchor=south] at (0.7, \byy) {designs $\uparrow$};
+    \node[font=\scriptsize, anchor=south] at (2.5, \byy) {$\downarrow$ barcodes};
+    \node[font=\scriptsize\itshape] at (1.6, -1.70) {Inverse-rank pairing};
+\end{scope}
+
+% ============================================================
+% OUTPUT
+% ============================================================
+\begin{scope}[xshift=\outX cm]
+    \node[align=center] at (1.2, 0.5) {\textbf{Output}};
+
+    \draw[thick, rounded corners=2pt] (0, -0.50) rectangle (2.2, -1.00);
+    \node at (1.1, -0.75) {\small Add primers + T7};
+
+    \draw[thick, -stealth] (2.2, -0.75) -- (2.6, -0.75);
+
+    \draw[thick, rounded corners=2pt] (2.6, -0.50) rectangle (4.6, -1.00);
+    \node at (3.6, -0.75) {\small Sequence library};
+\end{scope}
+
+% ============================================================
+% INTER-BLOCK ARROWS
+% ============================================================
+
+% Inputs -> Padding assignment
+\draw[thick, -stealth] ({\inputX+1.5}, -0.75) -- (\padX, -0.75);
+
+% Padding -> Barcode assignment
+\draw[thick, -stealth] ({\padX+\barspan}, -0.75) -- (\barcX, -0.75);
+
+% Barcode -> Output
+\draw[thick, -stealth] ({\barcX+\barspan}, -0.75) -- (\outX, -0.75);
+
+% Random path (shortcut over top)
 \draw[thick, -stealth, rounded corners=2pt]
-    (1.5, -0.75) -- (1.5, 1.3) -- (9.7, 1.3) -- (9.7, -0.05) -- (10.0, -0.05);
+    ({\inputX+1.5}, -0.75) -- ({\inputX+1.5}, 1.3)
+    -- ({\outX-0.3}, 1.3)
+    -- ({\outX-0.3}, -0.05) -- (\outX, -0.05);
 
-\draw[fill=white, draw=white] (4.8, 1.15) rectangle (7.4, 1.45);
-\node at (6.1, 1.3) {\small \textit{Random assignment}};
-
-% ============================================================
-% BALANCED PATH: Padding round
-% ============================================================
-\node[align=center] at (3.8, 0.5) {\textbf{Padding Assignment}};
-
-\draw[thick, -stealth] (1.5, -0.75) -- (2.2, -0.75);
-
-% --- Inverse-rank diagram 1 ---
-\def\bx{2.2}   % left edge
-\def\by{0.1}   % top of bar region
-\def\bw{0.35}  % bar row height
-\def\bg{0.08}  % gap between bars
-
-% Design bars (ascending read count)
-\foreach \len/\i in {0.4/0, 0.7/1, 1.0/2, 1.4/3} {
-    \pgfmathsetmacro{\yy}{\by - \i*(\bw+\bg)}
-    \draw[thick, fill=purp1!40] (\bx, \yy) rectangle ({\bx+\len}, {\yy-\bw});
-}
-
-% Padding bars (descending, right-aligned)
-\def\rx{5.4}
-\foreach \len/\i in {1.4/0, 1.0/1, 0.7/2, 0.4/3} {
-    \pgfmathsetmacro{\yy}{\by - \i*(\bw+\bg)}
-    \draw[thick, fill=green1!40] ({\rx-\len}, \yy) rectangle (\rx, {\yy-\bw});
-}
-
-% Connecting lines
-\foreach \dl/\pl/\i in {0.4/1.4/0, 0.7/1.0/1, 1.0/0.7/2, 1.4/0.4/3} {
-    \pgfmathsetmacro{\yy}{\by - \i*(\bw+\bg) - \bw/2}
-    \draw[thick, purp1!60] ({\bx+\dl}, \yy) -- ({\rx-\pl}, \yy);
-}
-
-% Labels
-\node[font=\scriptsize, anchor=south] at (2.9, \by) {designs $\uparrow$};
-\node[font=\scriptsize, anchor=south] at (4.7, \by) {$\downarrow$ padding};
-\node[font=\scriptsize\itshape] at (3.8, -1.70) {Inverse-rank pairing};
-
-% ============================================================
-% BALANCED PATH: Barcode round
-% ============================================================
-\draw[thick, -stealth] (5.4, -0.75) -- (6.1, -0.75);
-
-\node[align=center] at (7.9, 0.5) {\textbf{Barcode Assignment}};
-
-\def\cx{6.1}
-\def\dx{9.3}
-
-% Design bars (ascending)
-\foreach \len/\i in {0.4/0, 0.7/1, 1.0/2, 1.4/3} {
-    \pgfmathsetmacro{\yy}{\by - \i*(\bw+\bg)}
-    \draw[thick, fill=purp1!40] (\cx, \yy) rectangle ({\cx+\len}, {\yy-\bw});
-}
-
-% Barcode bars (descending)
-\foreach \len/\i in {1.4/0, 1.0/1, 0.7/2, 0.4/3} {
-    \pgfmathsetmacro{\yy}{\by - \i*(\bw+\bg)}
-    \draw[thick, fill=gold1!50] ({\dx-\len}, \yy) rectangle (\dx, {\yy-\bw});
-}
-
-% Connecting lines
-\foreach \dl/\pl/\i in {0.4/1.4/0, 0.7/1.0/1, 1.0/0.7/2, 1.4/0.4/3} {
-    \pgfmathsetmacro{\yy}{\by - \i*(\bw+\bg) - \bw/2}
-    \draw[thick, purp1!60] ({\cx+\dl}, \yy) -- ({\dx-\pl}, \yy);
-}
-
-% Labels
-\node[font=\scriptsize, anchor=south] at (6.8, \by) {designs $\uparrow$};
-\node[font=\scriptsize, anchor=south] at (8.5, \by) {$\downarrow$ barcodes};
-\node[font=\scriptsize\itshape] at (7.7, -1.70) {Inverse-rank pairing};
-
-% ============================================================
-% ASSEMBLY + OUTPUT
-% ============================================================
-\draw[thick, -stealth] (9.3, -0.75) -- (10.0, -0.75);
-
-\node[align=center] at (11.2, 0.5) {\textbf{Output}};
-
-\draw[thick, rounded corners=2pt] (10.0, -0.50) rectangle (12.2, -1.00);
-\node at (11.1, -0.75) {\small Add primers + T7};
-
-\draw[thick, -stealth] (12.2, -0.75) -- (12.6, -0.75);
-
-\draw[thick, rounded corners=2pt] (12.6, -0.50) rectangle (14.6, -1.00);
-\node at (13.6, -0.75) {\small Sequence library};
+\draw[fill=white, draw=white] ({(\inputX+\outX)/2-1.3}, 1.15) rectangle ({(\inputX+\outX)/2+1.3}, 1.45);
+\node at ({(\inputX+\outX)/2}, 1.3) {\small \textit{Random assignment}};
 
 \end{tikzpicture}
 \end{document}
