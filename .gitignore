@@ -4,3 +4,8 @@ build/
 output/
 *cache/
 lightning_logs/
+
+# LaTeX artefacts
+*.aux
+*.log
+*.pdf
