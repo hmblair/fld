@@ -5,12 +5,16 @@
 \usepackage[T1]{fontenc}
 
 \usepackage{tikz}
-\usetikzlibrary{arrows.meta, calc, positioning}
+\usetikzlibrary{arrows.meta, calc, positioning, patterns}
 
 \definecolor{red1}{HTML}{F9665E}
 \definecolor{gold1}{HTML}{F1A226}
 \definecolor{green1}{HTML}{6DDB5C}
 \definecolor{purp1}{HTML}{A44694}
+
+\pgfdeclarepatternformonly{dense north east lines}
+  {\pgfqpoint{-0.5pt}{-0.5pt}}{\pgfqpoint{2pt}{2pt}}{\pgfqpoint{2pt}{2pt}}
+  {\pgfsetlinewidth{0.5pt}\pgfpathmoveto{\pgfqpoint{-0.5pt}{-0.5pt}}\pgfpathlineto{\pgfqpoint{2.5pt}{2.5pt}}\pgfusepath{stroke}}
 
 \begin{document}
 \begin{tikzpicture}
@@ -22,12 +26,13 @@
 \pgfmathsetmacro{\fw}{20*\ntscale}     % flank width
 \pgfmathsetmacro{\bkw}{30*\ntscale}    % barcode width
 \pgfmathsetmacro{\tpd}{130*\ntscale}   % total pad+design width
+\pgfmathsetmacro{\tsvw}{7*\ntscale}     % T7 promoter width
 \def\rh{0.25}  % row height
 \def\rg{0.06}  % row gap
 \def\nrows{4}
 
 % Total width (constant across rows)
-\pgfmathsetmacro{\totalw}{\fw+\tpd+\bkw+\fw}
+\pgfmathsetmacro{\totalw}{\tsvw+\fw+\tpd+\bkw+\fw}
 \pgfmathsetmacro{\startx}{-\totalw/2}
 
 % Draw 4 constructs with varying design/padding splits
@@ -36,6 +41,10 @@
     \pgfmathsetmacro{\yy}{(\nrows-1)*(\rh+\rg)/2 - \i*(\rh+\rg)}
     \pgfmathsetmacro{\pcm}{\tpd - \dcm}
     \pgfmathsetmacro{\x}{\startx}
+    % T7 promoter (hatched — added experimentally, not part of designed library)
+    \fill[pattern=dense north east lines, pattern color=black!70] (\x, {\yy+\rh/2}) rectangle ({\x+\tsvw}, {\yy-\rh/2});
+    \draw[thick] (\x, {\yy+\rh/2}) rectangle ({\x+\tsvw}, {\yy-\rh/2});
+    \pgfmathsetmacro{\x}{\x+\tsvw}
     % 5' flank
     \draw[thick, fill=red1!30] (\x, {\yy+\rh/2}) rectangle ({\x+\fw}, {\yy-\rh/2});
     \pgfmathsetmacro{\x}{\x+\fw}
@@ -55,7 +64,7 @@
 % Compute bounding box midpoints for arrow targets (use middle row average)
 % Use the x-ranges across the stack for each segment type
 \pgfmathsetmacro{\xa}{\startx}
-\pgfmathsetmacro{\xFlankEnd}{\xa+\fw}
+\pgfmathsetmacro{\xFlankEnd}{\xa+\tsvw+\fw}
 % Padding region spans from xFlankEnd to xFlankEnd+pad (varies per row, use average)
 \pgfmathsetmacro{\midPadAvg}{\xFlankEnd + \tpd*0.25}  % ~middle of padding region
 % Design region center (varies, use average)
@@ -125,7 +134,7 @@
     \def\lx{-0.8}      % left edge (aligned for all rows)
 
     % Title
-    \node[font=\scriptsize\itshape, anchor=south] at ({\lx+\tw/2}, {0.7+0.05}) {Rebalancing};
+    \node[font=\scriptsize\itshape, anchor=south] at ({\lx+\tw/2}, {0.7+0.02}) {Rebalancing};
 
     % Bin 1: 3 rows, pad=0.35, design=1.0
     \def\pdA{0.35}
@@ -177,7 +186,7 @@
 % 3. BARCODE (bottom-right)
 % ============================================================
 \begin{scope}[shift={(\nrx, \by)}]
-    \node[font=\bfseries, anchor=north] at (0, -1.1) {3. Barcode};
+    \node[font=\bfseries, anchor=north] at (0, -1.55) {3. Barcode};
 
     \def\bh{0.16}
     \def\bg{0.05}
@@ -188,7 +197,7 @@
     \def\bcw{0.25}     % barcode width (constant)
 
     % Title
-    \node[font=\scriptsize\itshape, anchor=south] at ({\lx+(\pdtotal+\gapmid+\bcw)/2}, {0.7+0.05}) {Rebalancing};
+    \node[font=\scriptsize\itshape, anchor=south] at ({\lx+(\pdtotal+\gapmid+\bcw)/2}, {0.7+0.02}) {Rebalancing};
 
     % 5 rows, varying pad/design split, all same total, single bin
     \foreach \pw/\i in {0.35/0, 0.7/1, 0.55/2, 0.25/3, 0.8/4} {
@@ -271,6 +280,23 @@
         .. controls ({\lr}, {\lcy-\kk}) and ({\stemgap/2}, {\stemtop+0.12}) ..
         ({\stemgap/2}, \stemtop);
 
+    % Annotation: stable tetraloop — concentric curve outside loop
+    \def\olr{0.38}  % outer loop radius
+    \pgfmathsetmacro{\okk}{0.5523*\olr}
+    \draw[thin, black!60] ({-\olr}, \lcy)
+        .. controls ({-\olr}, {\lcy+\okk}) and ({-\okk}, {\lcy+\olr}) ..
+        (0, {\lcy+\olr})
+        .. controls ({\okk}, {\lcy+\olr}) and ({\olr}, {\lcy+\okk}) ..
+        ({\olr}, \lcy);
+    \node[font=\tiny, black!70, anchor=south] at (0, {\lcy+\olr+0.02}) {stable tetraloop};
+
+    % Annotation: closing GC pair — bracket beside bottom rung (closing pair at base of stem)
+    \pgfmathsetmacro{\botrung}{\stembot + 0.1}
+    \def\cgoff{0.22}  % offset from stem center
+    \draw[thin, black!60] ({\stemgap/2 + 0.04}, {\botrung - 0.08}) -- (\cgoff, {\botrung - 0.08})
+        -- (\cgoff, {\botrung + 0.08}) -- ({\stemgap/2 + 0.04}, {\botrung + 0.08});
+    \node[font=\tiny, black!70, anchor=west] at ({\cgoff + 0.02}, \botrung) {closing GC};
+
     % Dangling ends at bottom
     \draw[thick] ({-\stemgap/2}, \stembot) -- ({-\stemgap/2}, {\stembot - 0.15});
     \draw[thick] ({\stemgap/2}, \stembot) -- ({\stemgap/2}, {\stembot - 0.15});
@@ -295,9 +321,11 @@
 \draw[thin, -stealth] (\hpRightX, \hpRightY) -- (1.1, \hpRightY)
     -- (1.1, \bcBotEdgeY) -- (\bcGoldMidX, \bcBotEdgeY)
     -- (\bcGoldMidX, {\bcBotY - 0.16/2});
-% Hamming filter label on the snaking arrow's horizontal segment
+% Labels on the barcode snaking arrow
 \node[font=\scriptsize\itshape, fill=white, inner sep=1pt]
     at ({(1.1+\bcGoldMidX)/2}, \bcBotEdgeY) {Hamming filter};
+\node[font=\scriptsize\itshape, fill=white, inner sep=1pt, rotate=90]
+    at (1.1, {(\hpRightY+\bcBotEdgeY)/2}) {capacity check};
 
 % Arrow from hairpin to bottom padding row (snaking orthogonal path)
 % Bottom padding row (bin2, row1) vertical center in absolute coords
@@ -309,38 +337,21 @@
 \draw[thin, -stealth] ({-0.5*0.75}, \hpArrowY) -- (-1.1, \hpArrowY)
     -- (-1.1, \padBotEdgeY) -- (\padGreenMidX, \padBotEdgeY)
     -- (\padGreenMidX, {\padBotY - 0.16/2});
+% Label on the padding snaking arrow
+\node[font=\scriptsize\itshape, fill=white, inner sep=1pt, rotate=90]
+    at (-1.1, {(\hpArrowY+\padBotEdgeY)/2}) {hairpin train};
 
 % ============================================================
 % 4. FLANKING (top-right)
 % ============================================================
 \begin{scope}[shift={(\nrx, \ny)}]
-    \node[font=\bfseries, anchor=south] at (0, 0.65) {4. Flanking};
-
-    % 5' flank bar, dashed middle, 3' flank bar
-    \def\flx{-0.8}     % left edge
-    \def\flw{0.3}      % flank bar width
-    \def\flh{0.25}     % flank bar height
-    \def\dashw{1.0}    % dashed gap width
-
-    % 5' flank
-    \draw[thick, fill=red1!30] (\flx, 0) rectangle ({\flx+\flw}, {-\flh});
-    \node[font=\tiny] at ({\flx+\flw/2}, {-\flh/2}) {5'};
-
-    % dashed line
-    \draw[thick, dash pattern=on 2pt off 2pt] ({\flx+\flw}, {-\flh/2}) -- ({\flx+\flw+\dashw}, {-\flh/2});
-
-    % 3' flank
-    \pgfmathsetmacro{\rfx}{\flx+\flw+\dashw}
-    \draw[thick, fill=red1!30] (\rfx, 0) rectangle ({\rfx+\flw}, {-\flh});
-    \node[font=\tiny] at ({\rfx+\flw/2}, {-\flh/2}) {3'};
-
-    % Label below
-    \node[font=\scriptsize\itshape, anchor=north] at ({\flx+\flw+\dashw/2}, {-\flh-0.1})
-        {T7 promoter $+$ primers};
+    \node[font=\bfseries, anchor=south] at (0, 0.9) {4. Flanking};
+    \node[font=\scriptsize\itshape, anchor=north, align=left] at (0, 0.1)
+        {5$'$: T7 $+$ primer\\3$'$: primer};
 \end{scope}
 
 % 3-stage arrow: down from node, left to segment x, down to construct
-\pgfmathsetmacro{\flankNodeBot}{\ny - 0.25 - 0.1}
+\pgfmathsetmacro{\flankNodeBot}{\ny - 0.15}
 \draw[thick, -stealth]
     (\nrx, \flankNodeBot) -- (\nrx, \armTop)
     -- (\midFlankR, \armTop)
