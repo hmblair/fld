@@ -237,17 +237,35 @@
 % 4. FLANKING (top-right)
 % ============================================================
 \begin{scope}[shift={(\nrx, \ny)}]
-    \node[font=\bfseries, anchor=south] at (0, 0.45) {4. Flanking};
+    \node[font=\bfseries, anchor=south] at (0, 0.65) {4. Flanking};
 
-    \node[font=\small, anchor=center] at (0, 0.05)
-        {\textit{T7 promoter $+$ primers}};
+    % 5' flank bar, dashed middle, 3' flank bar
+    \def\flx{-0.8}     % left edge
+    \def\flw{0.3}      % flank bar width
+    \def\flh{0.25}     % flank bar height
+    \def\dashw{1.0}    % dashed gap width
 
+    % 5' flank
+    \draw[thick, fill=red1!30] (\flx, 0) rectangle ({\flx+\flw}, {-\flh});
+    \node[font=\tiny] at ({\flx+\flw/2}, {-\flh/2}) {5'};
 
+    % dashed line
+    \draw[thick, dash pattern=on 2pt off 2pt] ({\flx+\flw}, {-\flh/2}) -- ({\flx+\flw+\dashw}, {-\flh/2});
+
+    % 3' flank
+    \pgfmathsetmacro{\rfx}{\flx+\flw+\dashw}
+    \draw[thick, fill=red1!30] (\rfx, 0) rectangle ({\rfx+\flw}, {-\flh});
+    \node[font=\tiny] at ({\rfx+\flw/2}, {-\flh/2}) {3'};
+
+    % Label below
+    \node[font=\scriptsize\itshape, anchor=north] at ({\flx+\flw+\dashw/2}, {-\flh-0.1})
+        {T7 promoter $+$ primers};
 \end{scope}
 
 % 3-stage arrow: down from node, left to segment x, down to construct
+\pgfmathsetmacro{\flankNodeBot}{\ny - 0.25 - 0.1}
 \draw[thick, -stealth]
-    (\nrx, {\ny-0.3}) -- (\nrx, \armTop)
+    (\nrx, \flankNodeBot) -- (\nrx, \armTop)
     -- (\midFlankR, \armTop)
     -- (\midFlankR, \stackTop);
 
