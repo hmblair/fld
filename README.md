@@ -2,6 +2,8 @@
 
 A tool for designing RNA/DNA sequence libraries for MaP-seq experiments. Handles preprocessing, padding with hairpin structures, barcode generation, and optional read-count prediction.
 
+![Pipeline overview](docs/outline/pipeline-1.png)
+
 ## Installation
 
 Requires `cmake` and a C++20 compiler.
