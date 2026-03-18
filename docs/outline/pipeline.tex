@@ -89,19 +89,26 @@
 \begin{scope}[shift={(\nlx, \ny)}]
     \node[font=\bfseries, anchor=south] at (0, 0.9) {1. Design};
 
-    \node[font=\small, anchor=center] at (0, 0.35)
-        {\texttt{..GRY..} $\to$ \texttt{..GAC..}};
-    \node[font=\scriptsize\itshape, anchor=center] at (0, -0.15)
-        {Resolve ambiguous bases};
-
-
+    % 5 input design sequences of varying length
+    \def\dbh{0.14}
+    \def\dbg{0.04}
+    \def\dlx{-0.8}
+    \foreach \dw/\i in {0.9/0, 0.5/1, 1.3/2, 0.7/3, 1.1/4} {
+        \pgfmathsetmacro{\yy}{0.7 - \i*(\dbh+\dbg)}
+        \draw[thick, fill=purp1!40] (\dlx, \yy) rectangle ({\dlx+\dw}, {\yy-\dbh});
+    }
 \end{scope}
 
 % 3-stage arrow: down from node, right to segment x, down to construct
+\pgfmathsetmacro{\designNodeBot}{\ny + 0.7 - 4*(0.14+0.04) - 0.14}
 \draw[thick, -stealth]
-    (\nlx, {\ny-0.5}) -- (\nlx, \armTop)
+    (\nlx, \designNodeBot) -- (\nlx, \armTop)
     -- (\midDesignAvg, \armTop)
     -- (\midDesignAvg, \stackTop);
+
+% Label on arrow
+\node[font=\scriptsize\itshape, fill=white, inner sep=1pt]
+    at (\nlx, {(\designNodeBot+\armTop)/2}) {Resolve ambiguous bases};
 
 % ============================================================
 % 2. PADDING (bottom-left)
