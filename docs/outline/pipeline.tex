@@ -159,11 +159,6 @@
     \node[font={\fontsize{5.5}{6.5}\selectfont}, gray, rotate=-90, anchor=center] at ({\arrR + 0.15}, {(\arrTop+\arrBot)/2})
         {Reads};
 
-    % Caption below, pointing up to bottom padding bar
-    \pgfmathsetmacro{\lastRowMid}{\bintwotop - 1*(\bh+\bg) - \bh/2}
-    \node[font=\scriptsize\itshape, anchor=north, align=center] (hplabel) at ({\lx + \pdB/2}, -0.65)
-        {GC-constrained\\hairpin trains};
-    \draw[thin] (hplabel.north) -- ({\lx + \pdB/2}, {\bintwotop - 1*(\bh+\bg) - \bh});
 
 
 \end{scope}
@@ -232,6 +227,90 @@
     (\nrx, {\by+0.9}) -- (\nrx, \armBot)
     -- (\midBC, \armBot)
     -- (\midBC, \stackBot);
+
+% ============================================================
+% HAIRPIN SCHEMATIC (between nodes 2 and 3)
+% ============================================================
+% ChimeraX NDB colors: A=red, C=yellow, G=green, U=cyan
+\definecolor{baseA}{HTML}{E8655A}
+\colorlet{baseC}{gold1}
+\colorlet{baseG}{green1}
+\definecolor{baseU}{HTML}{89CFF0}
+
+\begin{scope}[shift={(0, \by)}]
+    % Hairpin: 4bp stem + 4nt loop
+    \def\nr{0.09}       % nucleotide circle radius
+    \def\stemgap{0.40}  % horizontal gap between stem strands
+    \def\stepy{0.26}    % vertical step between base pairs
+
+    % Stem base pairs (bottom to top): G-C, C-G, A-U, G-C
+    % Left strand (5' to 3', bottom to top)
+    \foreach \col/\lbl/\i in {baseG/G/0, baseC/C/1, baseA/A/2, baseG/G/3} {
+        \pgfmathsetmacro{\yy}{-0.3 + \i*\stepy}
+        % left base
+        \draw[thick, fill=\col!60] ({-\stemgap/2}, \yy) circle (\nr);
+        % right base (complement)
+    }
+    % Right strand (3' to 5', bottom to top): C, G, U, C
+    \foreach \col/\lbl/\i in {baseC/C/0, baseG/G/1, baseU/U/2, baseC/C/3} {
+        \pgfmathsetmacro{\yy}{-0.3 + \i*\stepy}
+        \draw[thick, fill=\col!60] ({\stemgap/2}, \yy) circle (\nr);
+        % base pair line
+        \draw[thin] ({-\stemgap/2+\nr}, \yy) -- ({\stemgap/2-\nr}, \yy);
+    }
+    % Backbone lines (stem)
+    \foreach \i in {0, 1, 2} {
+        \pgfmathsetmacro{\ya}{-0.3 + \i*\stepy}
+        \pgfmathsetmacro{\yb}{-0.3 + (\i+1)*\stepy}
+        \draw[thick] ({-\stemgap/2}, {\ya+\nr}) -- ({-\stemgap/2}, {\yb-\nr});
+        \draw[thick] ({\stemgap/2}, {\ya+\nr}) -- ({\stemgap/2}, {\yb-\nr});
+    }
+
+    % Loop: 6 points on a circular arc, equally spaced by angle (equal chords).
+    % Positions 0,5 = stem tops; 1-4 = loop bases.
+    % Symmetric about 90°. Step = 30°, arc = 150°.
+    % Stem-L at 165°, stem-R at 15°. r = stemgap / (2 sin(75°)).
+    \pgfmathsetmacro{\loopbase}{-0.3 + 3*\stepy}
+    \pgfmathsetmacro{\ltopY}{\loopbase + \nr}
+    \def\loopstep{50}
+    \pgfmathsetmacro{\stemAngL}{90 + 5*\loopstep/2}
+    \def\loopr{0.305}  % fixed loop radius (decoupled from stem gap)
+    \pgfmathsetmacro{\cx}{0}
+    \pgfmathsetmacro{\cy}{\ltopY - \loopr*sin(\stemAngL) - 0.06}
+    % Backbone lines first (so circles render on top)
+    \pgfmathsetmacro{\fAng}{\stemAngL - \loopstep}
+    \draw[thick] ({-\stemgap/2}, \ltopY) -- ({\cx + \loopr*cos(\fAng)}, {\cy + \loopr*sin(\fAng)});
+    \foreach \idxA/\idxB in {1/2, 2/3, 3/4} {
+        \pgfmathsetmacro{\angA}{\stemAngL - \idxA*\loopstep}
+        \pgfmathsetmacro{\angB}{\stemAngL - \idxB*\loopstep}
+        \draw[thick] ({\cx+\loopr*cos(\angA)}, {\cy+\loopr*sin(\angA)})
+                  -- ({\cx+\loopr*cos(\angB)}, {\cy+\loopr*sin(\angB)});
+    }
+    \pgfmathsetmacro{\lAng}{\stemAngL - 4*\loopstep}
+    \draw[thick] ({\cx + \loopr*cos(\lAng)}, {\cy + \loopr*sin(\lAng)}) -- ({\stemgap/2}, \ltopY);
+    % Loop base circles (on top of backbone)
+    \foreach \col/\idx in {baseU/1, baseU/2, baseC/3, baseG/4} {
+        \pgfmathsetmacro{\ang}{\stemAngL - (\idx)*\loopstep}
+        \pgfmathsetmacro{\lx}{\cx + \loopr*cos(\ang)}
+        \pgfmathsetmacro{\ly}{\cy + \loopr*sin(\ang)}
+        \draw[thick, fill=\col!60] (\lx, \ly) circle (\nr);
+    }
+
+    % Dangling ends at bottom
+    \pgfmathsetmacro{\botY}{-0.3 - \nr}
+    \draw[thick] ({-\stemgap/2}, \botY) -- ({-\stemgap/2}, {\botY - 0.15});
+    \draw[thick] ({\stemgap/2}, \botY) -- ({\stemgap/2}, {\botY - 0.15});
+    \node[font=\tiny, anchor=north] at ({-\stemgap/2}, {\botY - 0.15}) {5'};
+    \node[font=\tiny, anchor=north] at ({\stemgap/2}, {\botY - 0.15}) {3'};
+
+    % Caption
+    \node[font=\scriptsize\itshape, anchor=north, align=center] at (0, {\botY - 0.4})
+        {GC-constrained\\random hairpins};
+
+    % Arrows pointing to padding (left) and barcode (right) nodes
+    \draw[thin, -stealth] (-0.5, {(\loopbase + \botY)/2}) -- ({-\stemgap/2 - 0.8}, {(\loopbase + \botY)/2});
+    \draw[thin, -stealth] (0.5, {(\loopbase + \botY)/2}) -- ({\stemgap/2 + 0.8}, {(\loopbase + \botY)/2});
+\end{scope}
 
 % ============================================================
 % 4. FLANKING (top-right)
