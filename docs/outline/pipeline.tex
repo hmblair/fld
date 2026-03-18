@@ -115,9 +115,10 @@
     -- (\midDesignAvg, \armTop)
     -- (\midDesignAvg, {\stackTop+0.08});
 
-% Label on arrow
-\node[font=\scriptsize\itshape, fill=white, inner sep=1pt]
-    at (\nlx, {(\designNodeBot+\armTop)/2}) {Resolve ambiguous bases};
+% Inline process node on design horizontal segment
+\pgfmathsetmacro{\desCircX}{(\nlx+\midDesignAvg)/2}
+\node[draw, thick, circle, fill=white, minimum size=0.7cm, inner sep=0pt, scale=0.65, font=\large] at (\desCircX, \armTop) {$?$};
+\node[font=\scriptsize\itshape, anchor=south] at (\desCircX, {\armTop + 0.17}) {Resolve ambiguous bases};
 
 % ============================================================
 % 2. PADDING (bottom-left)
@@ -316,30 +317,30 @@
 \pgfmathsetmacro{\hpRightY}{\by + ((-0.5+0.3)/2)*0.75}
 \pgfmathsetmacro{\bcBotY}{\by + 0.7 - 4*(0.16+0.05) - 0.16/2}
 \pgfmathsetmacro{\bcGoldMidX}{\nrx + (-0.8) + 1.1 + 0.25 + 0.25/2}  % center of gold barcode bar
-\pgfmathsetmacro{\bcBotEdgeY}{\bcBotY - 0.16/2 - 0.14}  % below bottom row
+\pgfmathsetmacro{\bcBotEdgeY}{\bcBotY - 0.16/2 - 0.38}  % below bottom row (extra room for circle)
 % Route: from hairpin right, right, down below barcode blocks, right under them, up to gold bar
-\draw[thin, -stealth] (\hpRightX, \hpRightY) -- (1.1, \hpRightY)
+\draw[thick, -stealth] (\hpRightX, \hpRightY) -- (1.1, \hpRightY)
     -- (1.1, \bcBotEdgeY) -- (\bcGoldMidX, \bcBotEdgeY)
     -- (\bcGoldMidX, {\bcBotY - 0.16/2});
-% Labels on the barcode snaking arrow
-\node[font=\scriptsize\itshape, fill=white, inner sep=1pt]
-    at ({(1.1+\bcGoldMidX)/2}, \bcBotEdgeY) {Hamming filter};
-\node[font=\scriptsize\itshape, fill=white, inner sep=1pt, rotate=90]
-    at (1.1, {(\hpRightY+\bcBotEdgeY)/2}) {capacity check};
+% Inline process node on barcode horizontal segment
+\pgfmathsetmacro{\bcCircX}{(1.1+\bcGoldMidX)/2}
+\node[draw, thick, circle, fill=white, minimum size=0.7cm, inner sep=0pt, scale=0.65] at (\bcCircX, \bcBotEdgeY) {$\geq 2$};
+\node[font=\scriptsize\itshape, anchor=north] at (\bcCircX, {\bcBotEdgeY - 0.17}) {Hamming filter};
 
 % Arrow from hairpin to bottom padding row (snaking orthogonal path)
 % Bottom padding row (bin2, row1) vertical center in absolute coords
 \pgfmathsetmacro{\hpArrowY}{\by + ((-0.5 + 0.3)/2)*0.75}
 \pgfmathsetmacro{\padBotY}{\by + 0.7 - 3*(0.16+0.05) - 0.14 - 1*(0.16+0.05) - 0.16/2}
 \pgfmathsetmacro{\padGreenMidX}{\nlx + (-0.8) + 0.75/2}  % center of green padding bar (bin2)
-\pgfmathsetmacro{\padBotEdgeY}{\padBotY - 0.16/2 - 0.14}  % below bottom row
+\pgfmathsetmacro{\padBotEdgeY}{\padBotY - 0.16/2 - 0.38}  % below bottom row (extra room for circle)
 % Route around: from hairpin left, down below padding blocks, left under them, up to green bar bottom
-\draw[thin, -stealth] ({-0.5*0.75}, \hpArrowY) -- (-1.1, \hpArrowY)
+\draw[thick, -stealth] ({-0.5*0.75}, \hpArrowY) -- (-1.1, \hpArrowY)
     -- (-1.1, \padBotEdgeY) -- (\padGreenMidX, \padBotEdgeY)
     -- (\padGreenMidX, {\padBotY - 0.16/2});
-% Label on the padding snaking arrow
-\node[font=\scriptsize\itshape, fill=white, inner sep=1pt, rotate=90]
-    at (-1.1, {(\hpArrowY+\padBotEdgeY)/2}) {hairpin train};
+% Inline process node on padding horizontal segment
+\pgfmathsetmacro{\padCircX}{(-1.1+\padGreenMidX)/2}
+\node[draw, thick, circle, fill=white, minimum size=0.7cm, inner sep=0pt, scale=0.65] at (\padCircX, \padBotEdgeY) {$\times \mathrm{N}$};
+\node[font=\scriptsize\itshape, anchor=north] at (\padCircX, {\padBotEdgeY - 0.17}) {Tile to length};
 
 % ============================================================
 % 4. FLANKING (top-right)
