@@ -74,7 +74,7 @@
 % NODE POSITIONS
 % ============================================================
 \def\ny{2.0}   % vertical center for top nodes
-\def\by{-2.0}  % vertical center for bottom nodes
+\def\by{-2.3}  % vertical center for bottom nodes
 \def\nlx{-2.8} % horizontal center for left nodes
 \def\nrx{2.8}  % horizontal center for right nodes
 \def\nw{2.8}   % node box width
@@ -104,7 +104,7 @@
 \draw[thick, -stealth]
     (\nlx, \designNodeBot) -- (\nlx, \armTop)
     -- (\midDesignAvg, \armTop)
-    -- (\midDesignAvg, \stackTop);
+    -- (\midDesignAvg, {\stackTop+0.08});
 
 % Label on arrow
 \node[font=\scriptsize\itshape, fill=white, inner sep=1pt]
@@ -123,6 +123,9 @@
     \def\tw{1.6}       % total width (pad+gap+design)
     \def\gapmid{0.25}  % gap between pad and design
     \def\lx{-0.8}      % left edge (aligned for all rows)
+
+    % Title
+    \node[font=\scriptsize\itshape, anchor=south] at ({\lx+\tw/2}, {0.7+0.05}) {Rebalancing};
 
     % Bin 1: 3 rows, pad=0.35, design=1.0
     \def\pdA{0.35}
@@ -165,10 +168,10 @@
 
 % 3-stage arrow: up from node, right to segment x, up to construct
 \draw[thick, -stealth]
-    (\nlx, {\by+0.9}) -- (\nlx, \armBot)
+    (\nlx, {\by+1.15}) -- (\nlx, \armBot)
 
     -- (\midPadAvg, \armBot)
-    -- (\midPadAvg, \stackBot);
+    -- (\midPadAvg, {\stackBot-0.08});
 
 % ============================================================
 % 3. BARCODE (bottom-right)
@@ -183,6 +186,9 @@
     \def\lx{-0.8}      % left edge
     \def\pdtotal{1.1}  % pad+design total width (constant)
     \def\bcw{0.25}     % barcode width (constant)
+
+    % Title
+    \node[font=\scriptsize\itshape, anchor=south] at ({\lx+(\pdtotal+\gapmid+\bcw)/2}, {0.7+0.05}) {Rebalancing};
 
     % 5 rows, varying pad/design split, all same total, single bin
     \foreach \pw/\i in {0.35/0, 0.7/1, 0.55/2, 0.25/3, 0.8/4} {
@@ -219,9 +225,9 @@
 
 % 3-stage arrow: up from node, left to segment x, up to construct
 \draw[thick, -stealth]
-    (\nrx, {\by+0.9}) -- (\nrx, \armBot)
+    (\nrx, {\by+1.15}) -- (\nrx, \armBot)
     -- (\midBC, \armBot)
-    -- (\midBC, \stackBot);
+    -- (\midBC, {\stackBot-0.08});
 
 
 % ============================================================
@@ -338,7 +344,7 @@
 \draw[thick, -stealth]
     (\nrx, \flankNodeBot) -- (\nrx, \armTop)
     -- (\midFlankR, \armTop)
-    -- (\midFlankR, \stackTop);
+    -- (\midFlankR, {\stackTop+0.08});
 
 \end{tikzpicture}
 \end{document}
