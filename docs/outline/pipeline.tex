@@ -1,192 +1,184 @@
-\documentclass[border=0.2cm]{standalone}
+\documentclass[border=0.3cm]{standalone}
 
 \usepackage[scaled]{helvet}
 \renewcommand\familydefault{\sfdefault}
 \usepackage[T1]{fontenc}
 
 \usepackage{tikz}
-\usetikzlibrary{arrows.meta}
+\usetikzlibrary{arrows.meta, calc, positioning}
 
 \definecolor{red1}{HTML}{F9665E}
-\definecolor{blue1}{HTML}{A44694}
 \definecolor{gold1}{HTML}{F1A226}
 \definecolor{green1}{HTML}{6DDB5C}
 \definecolor{purp1}{HTML}{A44694}
-
-% Block x-offsets (adjust these to reposition entire blocks)
-\newcommand{\inputX}{0}
-\newcommand{\padX}{2.2}
-\newcommand{\barcX}{6.1}
-\newcommand{\outX}{10.0}
-
-% Shared bar chart parameters
-\newcommand{\byy}{-0.9}  % top of bar region
-\newcommand{\bww}{0.35}  % bar row height
-\newcommand{\bgg}{0.08}  % gap between bars
-\newcommand{\barspan}{3.2} % total width of a bar chart pair
 
 \begin{document}
 \begin{tikzpicture}
 
 % ============================================================
-% INPUTS
+% CENTRAL CONSTRUCT LIBRARY (stacked)
 % ============================================================
-\begin{scope}[xshift=\inputX cm]
-    % Design sequences (true input)
-    \draw[thick, rounded corners=2pt] (-1.1, 0.15) rectangle (1.1, -0.25);
-    \node at (0, -0.05) {\small Design sequences};
+\def\ntscale{0.03}  % cm per nt
+\pgfmathsetmacro{\fw}{20*\ntscale}     % flank width
+\pgfmathsetmacro{\bkw}{30*\ntscale}    % barcode width
+\pgfmathsetmacro{\tpd}{130*\ntscale}   % total pad+design width
+\def\rh{0.25}  % row height
+\def\rg{0.06}  % row gap
+\def\nrows{4}
 
-    % Arrow: resolve ambiguous bases, then generate
-    \draw[thick, -stealth] (0, -0.25) -- (0, -1.55);
-    \draw[fill=white, draw=white] (-1.1, -0.35) rectangle (1.1, -0.65);
-    \node at (0, -0.50) {\scriptsize \textit{Resolve ambig. bases}};
+% Total width (constant across rows)
+\pgfmathsetmacro{\totalw}{\fw+\tpd+\bkw+\fw}
+\pgfmathsetmacro{\startx}{-\totalw/2}
 
-    % Padding
-    \draw[thick, rounded corners=2pt] (-1.1, -1.55) rectangle (1.1, -1.95);
-    \node at (0, -1.75) {\small Padding};
-    \node[font=\scriptsize\itshape, anchor=west] at (1.15, -1.75) {GC/GU constr.};
+% Draw 4 constructs with varying design/padding splits
+% design widths in cm (ascending)
+\foreach \dcm/\i in {1.8/0, 0.6/1, 2.4/2, 1.2/3} {
+    \pgfmathsetmacro{\yy}{(\nrows-1)*(\rh+\rg)/2 - \i*(\rh+\rg)}
+    \pgfmathsetmacro{\pcm}{\tpd - \dcm}
+    \pgfmathsetmacro{\x}{\startx}
+    % 5' flank
+    \draw[thick, fill=red1!30] (\x, {\yy+\rh/2}) rectangle ({\x+\fw}, {\yy-\rh/2});
+    \pgfmathsetmacro{\x}{\x+\fw}
+    % padding
+    \draw[thick, fill=green1!35] (\x, {\yy+\rh/2}) rectangle ({\x+\pcm}, {\yy-\rh/2});
+    \pgfmathsetmacro{\x}{\x+\pcm}
+    % design
+    \draw[thick, fill=purp1!35] (\x, {\yy+\rh/2}) rectangle ({\x+\dcm}, {\yy-\rh/2});
+    \pgfmathsetmacro{\x}{\x+\dcm}
+    % barcode
+    \draw[thick, fill=gold1!40] (\x, {\yy+\rh/2}) rectangle ({\x+\bkw}, {\yy-\rh/2});
+    \pgfmathsetmacro{\x}{\x+\bkw}
+    % 3' flank
+    \draw[thick, fill=red1!30] (\x, {\yy+\rh/2}) rectangle ({\x+\fw}, {\yy-\rh/2});
+}
 
-    % Arrow
-    \draw[thick, -stealth] (0, -1.95) -- (0, -2.25);
+% Compute bounding box midpoints for arrow targets (use middle row average)
+% Use the x-ranges across the stack for each segment type
+\pgfmathsetmacro{\xa}{\startx}
+\pgfmathsetmacro{\xFlankEnd}{\xa+\fw}
+% Padding region spans from xFlankEnd to xFlankEnd+pad (varies per row, use average)
+\pgfmathsetmacro{\midPadAvg}{\xFlankEnd + \tpd*0.25}  % ~middle of padding region
+% Design region center (varies, use average)
+\pgfmathsetmacro{\midDesignAvg}{\xFlankEnd + \tpd*0.75}
+% Barcode
+\pgfmathsetmacro{\xBCstart}{\xFlankEnd + \tpd}
+\pgfmathsetmacro{\midBC}{(\xBCstart + \xBCstart + \bkw)/2}
+% Right flank
+\pgfmathsetmacro{\xRFstart}{\xBCstart + \bkw}
+\pgfmathsetmacro{\midFlankR}{(\xRFstart + \xRFstart + \fw)/2}
+% Stack vertical extent
+\pgfmathsetmacro{\stackTop}{(\nrows-1)*(\rh+\rg)/2 + \rh/2}
+\pgfmathsetmacro{\stackBot}{-(\nrows-1)*(\rh+\rg)/2 - \rh/2}
 
-    % Barcodes
-    \draw[thick, rounded corners=2pt] (-1.1, -2.25) rectangle (1.1, -2.65);
-    \node at (0, -2.45) {\small Barcodes};
-    \node[font=\scriptsize\itshape, anchor=west] at (1.15, -2.45) {Hamming $\geq 2$};
+% ============================================================
+% NODE POSITIONS
+% ============================================================
+\def\ny{2.0}   % vertical center for top nodes
+\def\by{-2.0}  % vertical center for bottom nodes
+\def\nlx{-2.8} % horizontal center for left nodes
+\def\nrx{2.8}  % horizontal center for right nodes
+\def\nw{2.8}   % node box width
 
-    % Merge designs + padding + barcodes rightward
-    \draw[thick, rounded corners=2pt] (0, -0.95) -- (1.5, -0.95) -- (1.5, -1.75);
-    \draw[thick]                      (1.1, -1.75) -- (1.5, -1.75);
-    \draw[thick, rounded corners=2pt] (1.1, -2.45) -- (1.5, -2.45) -- (1.5, -1.75);
+% Arm intermediate y-positions
+\def\armTop{0.9}     % horizontal segment y for top nodes
+\def\armBot{-0.9}    % horizontal segment y for bottom nodes
+
+% ============================================================
+% 1. DESIGN (top-left)
+% ============================================================
+\begin{scope}[shift={(\nlx, \ny)}]
+    \node[font=\bfseries, anchor=south] at (0, 0.9) {1. Design};
+
+    \node[font=\small, anchor=center] at (0, 0.35)
+        {\texttt{..GRY..} $\to$ \texttt{..GAC..}};
+    \node[font=\scriptsize\itshape, anchor=center] at (0, -0.15)
+        {Resolve ambiguous bases};
+
+    \draw[thick, rounded corners=3pt] (-\nw/2, -0.5) rectangle (\nw/2, 1.15);
 \end{scope}
 
+% 3-stage arrow: down from node, right to segment x, down to construct
+\draw[thick, -stealth]
+    (\nlx, {\ny-0.5}) -- (\nlx, \armTop)
+    -- (\midDesignAvg, \armTop)
+    -- (\midDesignAvg, \stackTop);
+
 % ============================================================
-% PADDING ASSIGNMENT
+% 2. PADDING (bottom-left)
 % ============================================================
-\begin{scope}[xshift=\padX cm]
-    \node[align=center] at (1.6, -0.5) {\textbf{Padding Assignment}};
+\begin{scope}[shift={(\nlx, \by)}]
+    \node[font=\bfseries, anchor=north] at (0, -1.1) {2. Padding};
 
-    % Padding bars (descending, left-aligned)
-    \foreach \len/\i in {1.4/0, 1.0/1, 0.7/2, 0.4/3} {
-        \pgfmathsetmacro{\yy}{\byy - \i*(\bww+\bgg)}
-        \draw[thick, fill=green1!40] (0, \yy) rectangle ({\len}, {\yy-\bww});
+    % Paired-bar schematic
+    \def\bh{0.18}
+    \def\bg{0.08}
+    \foreach \pl/\dl/\i in {1.1/0.35/0, 0.75/0.7/1, 0.35/1.1/2} {
+        \pgfmathsetmacro{\yy}{0.65 - \i*(\bh+\bg)}
+        \draw[thick, fill=green1!35] (-1.3, \yy) rectangle ({-1.3+\pl}, {\yy-\bh});
+        \draw[thick, fill=purp1!35] ({1.3-\dl}, \yy) rectangle (1.3, {\yy-\bh});
+        \draw[thin, purp1!50] ({-1.3+\pl}, {\yy-\bh/2}) -- ({1.3-\dl}, {\yy-\bh/2});
     }
 
-    % Design bars (ascending, right-aligned)
-    \foreach \len/\i in {0.4/0, 0.7/1, 1.0/2, 1.4/3} {
-        \pgfmathsetmacro{\yy}{\byy - \i*(\bww+\bgg)}
-        \draw[thick, fill=purp1!40] ({\barspan-\len}, \yy) rectangle (\barspan, {\yy-\bww});
-    }
+    \node[font=\scriptsize\itshape, anchor=center] at (0, -0.2)
+        {Inverse-rank pairing};
+    \node[font=\scriptsize\itshape, anchor=center] at (0, -0.55)
+        {GC/GU constraints};
 
-    % Connecting lines
-    \foreach \dl/\pl/\i in {1.4/0.4/0, 1.0/0.7/1, 0.7/1.0/2, 0.4/1.4/3} {
-        \pgfmathsetmacro{\yy}{\byy - \i*(\bww+\bgg) - \bww/2}
-        \draw[thick, purp1!60] (\dl, \yy) -- ({\barspan-\pl}, \yy);
-    }
-
-    % Labels
-    \node[font=\scriptsize, anchor=south] at (0.7, \byy) {$\downarrow$ padding};
-    \node[font=\scriptsize, anchor=south] at (2.5, \byy) {designs $\uparrow$};
-    \node[font=\scriptsize\itshape] at (1.6, -2.70) {Inverse-rank pairing};
+    \draw[thick, rounded corners=3pt] (-\nw/2, -1.35) rectangle (\nw/2, 0.9);
 \end{scope}
 
+% 3-stage arrow: up from node, right to segment x, up to construct
+\draw[thick, -stealth]
+    (\nlx, {\by+0.9}) -- (\nlx, \armBot)
+    -- (\midPadAvg, \armBot)
+    -- (\midPadAvg, \stackBot);
+
 % ============================================================
-% BARCODE ASSIGNMENT
+% 3. BARCODE (bottom-right)
 % ============================================================
-\begin{scope}[xshift=\barcX cm]
-    \node[align=center] at (1.6, -0.5) {\textbf{Barcode Assignment}};
+\begin{scope}[shift={(\nrx, \by)}]
+    \node[font=\bfseries, anchor=north] at (0, -1.1) {3. Barcode};
 
-    % Design bars (ascending)
-    \foreach \len/\i in {0.4/0, 0.7/1, 1.0/2, 1.4/3} {
-        \pgfmathsetmacro{\yy}{\byy - \i*(\bww+\bgg)}
-        \draw[thick, fill=purp1!40] (0, \yy) rectangle ({\len}, {\yy-\bww});
+    \def\bh{0.18}
+    \def\bg{0.08}
+    \foreach \dl/\bl/\i in {0.35/1.1/0, 0.7/0.75/1, 1.1/0.35/2} {
+        \pgfmathsetmacro{\yy}{0.65 - \i*(\bh+\bg)}
+        \draw[thick, fill=purp1!35] (-1.3, \yy) rectangle ({-1.3+\dl}, {\yy-\bh});
+        \draw[thick, fill=gold1!40] ({1.3-\bl}, \yy) rectangle (1.3, {\yy-\bh});
+        \draw[thin, purp1!50] ({-1.3+\dl}, {\yy-\bh/2}) -- ({1.3-\bl}, {\yy-\bh/2});
     }
 
-    % Barcode bars (descending)
-    \foreach \len/\i in {1.4/0, 1.0/1, 0.7/2, 0.4/3} {
-        \pgfmathsetmacro{\yy}{\byy - \i*(\bww+\bgg)}
-        \draw[thick, fill=gold1!50] ({\barspan-\len}, \yy) rectangle (\barspan, {\yy-\bww});
-    }
+    \node[font=\scriptsize\itshape, anchor=center] at (0, -0.2)
+        {Inverse-rank pairing};
+    \node[font=\scriptsize\itshape, anchor=center] at (0, -0.55)
+        {Hamming $\geq 2$, GC/GU constr.};
 
-    % Connecting lines
-    \foreach \dl/\pl/\i in {0.4/1.4/0, 0.7/1.0/1, 1.0/0.7/2, 1.4/0.4/3} {
-        \pgfmathsetmacro{\yy}{\byy - \i*(\bww+\bgg) - \bww/2}
-        \draw[thick, purp1!60] (\dl, \yy) -- ({\barspan-\pl}, \yy);
-    }
-
-    % Labels
-    \node[font=\scriptsize, anchor=south] at (0.7, \byy) {designs $\uparrow$};
-    \node[font=\scriptsize, anchor=south] at (2.5, \byy) {$\downarrow$ barcodes};
-    \node[font=\scriptsize\itshape] at (1.6, -2.70) {Inverse-rank pairing};
+    \draw[thick, rounded corners=3pt] (-\nw/2, -1.35) rectangle (\nw/2, 0.9);
 \end{scope}
 
+% 3-stage arrow: up from node, left to segment x, up to construct
+\draw[thick, -stealth]
+    (\nrx, {\by+0.9}) -- (\nrx, \armBot)
+    -- (\midBC, \armBot)
+    -- (\midBC, \stackBot);
+
 % ============================================================
-% OUTPUT: stacked construct diagrams
+% 4. FLANKING (top-right)
 % ============================================================
-\newcommand{\outMerge}{10.5} % x where both paths merge
-\newcommand{\outStart}{12.0} % x where constructs begin
+\begin{scope}[shift={(\nrx, \ny)}]
+    \node[font=\bfseries, anchor=south] at (0, 0.45) {4. Flanking};
 
-\begin{scope}[xshift=\outStart cm]
-    \node[align=center, font=\bfseries] at (1.8, -0.5) {Sequence Library};
+    \node[font=\small, anchor=center] at (0, 0.05)
+        {\textit{T7 promoter $+$ primers}};
 
-    % Each construct: red flank | green pad | purple design | gold barcode | red flank
-    % Real proportions: flank=20nt, design+pad=130nt, barcode=30nt, total=230nt
-    % Scale: 3.6cm total width -> 1cm per ~64nt
-    \def\scale{0.01565}  % cm per nt: 3.6/230
-    \pgfmathsetmacro{\fw}{20*\scale}    % flank: 0.313
-    \pgfmathsetmacro{\bkw}{30*\scale}   % barcode: 0.470
-    \pgfmathsetmacro{\tw}{130*\scale}   % design+pad: 2.035
-    \def\rh{0.22}  % row height
-    \def\rg{0.10}  % row gap
-
-    % design lengths in cm (varying, pad = tw - dw)
-    \foreach \dw/\i in {0.5/0, 0.9/1, 1.3/2, 1.7/3} {
-        \pgfmathsetmacro{\yy}{-0.9 - \i*(\rh+\rg)}
-        \pgfmathsetmacro{\pw}{\tw - \dw}
-        \pgfmathsetmacro{\x}{0}
-        % 5' flank
-        \draw[thick, fill=red1!30] (\x, \yy) rectangle ({\x+\fw}, {\yy-\rh});
-        \pgfmathsetmacro{\x}{\x+\fw}
-        % padding
-        \draw[thick, fill=green1!35] (\x, \yy) rectangle ({\x+\pw}, {\yy-\rh});
-        \pgfmathsetmacro{\x}{\x+\pw}
-        % design
-        \draw[thick, fill=purp1!35] (\x, \yy) rectangle ({\x+\dw}, {\yy-\rh});
-        \pgfmathsetmacro{\x}{\x+\dw}
-        % barcode
-        \draw[thick, fill=gold1!40] (\x, \yy) rectangle ({\x+\bkw}, {\yy-\rh});
-        \pgfmathsetmacro{\x}{\x+\bkw}
-        % 3' flank
-        \draw[thick, fill=red1!30] (\x, \yy) rectangle ({\x+\fw}, {\yy-\rh});
-    }
+    \draw[thick, rounded corners=3pt] (-\nw/2, -0.3) rectangle (\nw/2, 0.7);
 \end{scope}
 
-% ============================================================
-% INTER-BLOCK ARROWS
-% ============================================================
-
-% Inputs -> Padding assignment
-\draw[thick, -stealth] ({\inputX+1.5}, -1.75) -- (\padX, -1.75);
-
-% Padding -> Barcode assignment
-\draw[thick, -stealth] ({\padX+\barspan}, -1.75) -- (\barcX, -1.75);
-
-% Barcode -> merge point
-\draw[thick] ({\barcX+\barspan}, -1.75) -- (\outMerge, -1.75);
-
-% Random path (shortcut over top, merges at same point)
-\draw[thick, rounded corners=2pt]
-    ({\inputX+1.5}, -1.75) -- ({\inputX+1.5}, 0.3)
-    -- (\outMerge, 0.3)
-    -- (\outMerge, -1.75);
-
-\draw[fill=white, draw=white] ({(\inputX+\outMerge)/2-1.3}, 0.15) rectangle ({(\inputX+\outMerge)/2+1.3}, 0.45);
-\node at ({(\inputX+\outMerge)/2}, 0.3) {\small \textit{Random assignment}};
-
-% Merge point -> output (with inline label)
-\draw[thick, -stealth] (\outMerge, -1.75) -- (\outStart, -1.75);
-\draw[fill=white, draw=white] ({\outMerge+0.1}, -1.60) rectangle ({\outStart-0.1}, -1.90);
-\node at ({(\outMerge+\outStart)/2}, -1.75) {\small \textit{Add primers + T7}};
+% 3-stage arrow: down from node, left to segment x, down to construct
+\draw[thick, -stealth]
+    (\nrx, {\ny-0.3}) -- (\nrx, \armTop)
+    -- (\midFlankR, \armTop)
+    -- (\midFlankR, \stackTop);
 
 \end{tikzpicture}
 \end{document}
