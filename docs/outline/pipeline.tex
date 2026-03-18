@@ -306,7 +306,7 @@
 
     % Caption
     \node[font=\scriptsize\bfseries, anchor=north, align=center] at (0, {\stembot - 0.4})
-        {Random hairpins};
+        {AU-rich\\random hairpins};
 
 \end{scope}
 
@@ -346,15 +346,34 @@
 % ============================================================
 \begin{scope}[shift={(\nrx, \ny)}]
     \node[font=\bfseries, anchor=south] at (0, 0.9) {4. Flanking};
-    \node[font=\scriptsize\itshape, anchor=north, align=left] at (0, 0.1)
-        {5$'$: T7 $+$ primer\\3$'$: primer};
+
+    % 5' flank: T7 (hatched) + red block + label
+    % Match central construct proportions: T7=7nt, flank=20nt
+    \def\fbh{0.14}  % bar height (match node 1)
+    \def\flx{-1.3}  % left edge
+    \pgfmathsetmacro{\ftw}{7*0.02}   % T7 width (scaled)
+    \pgfmathsetmacro{\frw}{20*0.02}  % flank width (scaled)
+
+    \pgfmathsetmacro{\fiveY}{0.7}
+    % T7 block
+    \fill[pattern=dense north east lines, pattern color=black!70] (\flx, \fiveY) rectangle ({\flx+\ftw}, {\fiveY-\fbh});
+    \draw[thick] (\flx, \fiveY) rectangle ({\flx+\ftw}, {\fiveY-\fbh});
+    % 5' flank
+    \draw[thick, fill=red1!30] ({\flx+\ftw}, \fiveY) rectangle ({\flx+\ftw+\frw}, {\fiveY-\fbh});
+    \node[font=\scriptsize\itshape, anchor=west] at ({\flx+\ftw+\frw+0.08}, {\fiveY-\fbh/2}) {5$'$: T7 $+$ primer};
+
+    % 3' flank: red block aligned with the red portion above
+    \pgfmathsetmacro{\threeY}{\fiveY - \fbh - 0.08}
+    \draw[thick, fill=red1!30] ({\flx+\ftw}, \threeY) rectangle ({\flx+\ftw+\frw}, {\threeY-\fbh});
+    \node[font=\scriptsize\itshape, anchor=west] at ({\flx+\ftw+\frw+0.08}, {\threeY-\fbh/2}) {3$'$: primer};
 \end{scope}
 
 % 3-stage arrow: down from node, left to segment x, down to construct
-\pgfmathsetmacro{\flankNodeBot}{\ny - 0.15}
+\pgfmathsetmacro{\flankNodeBot}{\ny + 0.7 - 2*(0.14+0.08) - 0.14 - 0.1}
+\pgfmathsetmacro{\flankArrX}{\nrx + (-1.3) + (7*0.02 + 20*0.02)/2}
 \draw[thick, -stealth]
-    (\nrx, \flankNodeBot) -- (\nrx, \armTop)
-    -- (\midFlankR, \armTop)
+    (\flankArrX, \flankNodeBot) -- (\flankArrX, \desArmY)
+    -- (\midFlankR, \desArmY)
     -- (\midFlankR, {\stackTop+0.08});
 
 \end{tikzpicture}
