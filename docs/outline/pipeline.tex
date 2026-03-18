@@ -174,19 +174,48 @@
 \begin{scope}[shift={(\nrx, \by)}]
     \node[font=\bfseries, anchor=north] at (0, -1.1) {3. Barcode};
 
-    \def\bh{0.18}
-    \def\bg{0.08}
-    \foreach \dl/\bl/\i in {0.35/1.1/0, 0.7/0.75/1, 1.1/0.35/2} {
-        \pgfmathsetmacro{\yy}{0.65 - \i*(\bh+\bg)}
-        \draw[thick, fill=purp1!35] (-1.3, \yy) rectangle ({-1.3+\dl}, {\yy-\bh});
-        \draw[thick, fill=gold1!40] ({1.3-\bl}, \yy) rectangle (1.3, {\yy-\bh});
-        \draw[thin, purp1!50] ({-1.3+\dl}, {\yy-\bh/2}) -- ({1.3-\bl}, {\yy-\bh/2});
+    \def\bh{0.16}
+    \def\bg{0.05}
+    \def\tw{1.6}       % total width (pad+design+gap+barcode)
+    \def\gapmid{0.25}  % gap between joined construct and barcode
+    \def\lx{-0.8}      % left edge
+    \def\pdtotal{1.1}  % pad+design total width (constant)
+    \def\bcw{0.25}     % barcode width (constant)
+
+    % 5 rows, varying pad/design split, all same total, single bin
+    \foreach \pw/\i in {0.35/0, 0.7/1, 0.55/2, 0.25/3, 0.8/4} {
+        \pgfmathsetmacro{\yy}{0.7 - \i*(\bh+\bg)}
+        \pgfmathsetmacro{\dw}{\pdtotal - \pw}
+        % padding (left part of joined bar)
+        \draw[thick, fill=green1!40] (\lx, \yy) rectangle ({\lx+\pw}, {\yy-\bh});
+        % design (right part of joined bar)
+        \draw[thick, fill=purp1!40] ({\lx+\pw}, \yy) rectangle ({\lx+\pdtotal}, {\yy-\bh});
+        % barcode (right-aligned)
+        \pgfmathsetmacro{\bcx}{\lx+\pdtotal+\gapmid}
+        \draw[thick, fill=gold1!40] (\bcx, \yy) rectangle ({\bcx+\bcw}, {\yy-\bh});
+        % connecting line
+        \draw[thin] ({\lx+\pdtotal}, {\yy-\bh/2}) -- (\bcx, {\yy-\bh/2});
     }
 
-    \node[font=\scriptsize\itshape, anchor=center] at (0, -0.2)
-        {Inverse-rank pairing};
-    \node[font=\scriptsize\itshape, anchor=center] at (0, -0.55)
-        {Hamming $\geq 2$, GC/GU constr.};
+    % Sort arrows
+    \pgfmathsetmacro{\arrTop}{0.7 - \bh/2}
+    \pgfmathsetmacro{\arrBot}{0.7 - 4*(\bh+\bg) - \bh/2}
+    \pgfmathsetmacro{\arrL}{\lx - 0.2}
+    \pgfmathsetmacro{\bcx}{\lx+\pdtotal+\gapmid}
+    \pgfmathsetmacro{\arrR}{\bcx + \bcw + 0.2}
+    \draw[gray, thin, -stealth] (\arrL, \arrTop) -- (\arrL, \arrBot);
+    \draw[gray, thin, stealth-] (\arrR, \arrTop) -- (\arrR, \arrBot);
+
+    % Arrow labels
+    \node[font={\fontsize{5.5}{6.5}\selectfont}, gray, rotate=90, anchor=center]
+        at ({\arrL - 0.15}, {(\arrTop+\arrBot)/2}) {Reads};
+    \node[font={\fontsize{5.5}{6.5}\selectfont}, gray, rotate=-90, anchor=center]
+        at ({\arrR + 0.15}, {(\arrTop+\arrBot)/2}) {Reads};
+
+    % Caption
+    \node[font=\scriptsize\itshape, anchor=north, align=center] (bclabel) at ({\bcx + \bcw/2}, -0.55)
+        {Hamming $\geq 2$};
+    \draw[thin] (bclabel.north) -- ({\bcx + \bcw/2}, {\arrBot - \bh/2 + 0.02});
 
 
 \end{scope}
