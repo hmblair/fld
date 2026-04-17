@@ -327,7 +327,7 @@ void _pipeline(const PipelineConfig& config) {
     } else {
         design_config.five_const = config.five_const;
         design_config.three_const = config.three_const;
-        design_config.barcode.stem_length = config.barcode_length;
+        design_config.barcode.stem_length = config.no_barcodes ? 0 : config.barcode_length;
     }
     design_config.barcode.stem = config.stem;
 
