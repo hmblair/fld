@@ -30,7 +30,7 @@ Design a library with padding and barcodes:
 fld pipeline -o output/ --pad-to 130 --barcode-length 10 designs.fasta
 ```
 
-This produces:
+This produces 194nt constructs (`40 + 130 + 2 * 10 + 4`):
 - `output/library.csv` - Full library with all sequence components
 - `output/library.fasta` - Complete sequences in FASTA format
 - `output/t7-library.fasta` - Same sequences with T7 promoter prefix (GGGAACG)
@@ -338,10 +338,19 @@ A complete construct has this structure (5' to 3'):
 [5' const] [5' padding] [design] [3' padding] [barcode] [3' const]
 ```
 
-- **5'/3' const**: Primer binding sites (constant across library)
-- **5'/3' padding**: Hairpin structures to reach target length
-- **design**: Your original sequence of interest
-- **barcode**: Unique identifier hairpin for each sequence
+- **5'/3' const**: Primer binding sites (constant across library). With the default `--five-const` (19nt) and `--three-const` (21nt), these contribute **40nt** total.
+- **5'/3' padding**: Hairpin structures that pad the design region (`design + 5' padding + 3' padding`) to `--pad-to` nucleotides.
+- **design**: Your original sequence of interest.
+- **barcode**: A hairpin with a stem of length `--barcode-length`, a 4nt tetraloop, and a closing stem of equal length, contributing `2 * --barcode-length + 4` nucleotides.
+
+### Final Construct Length
+
+With the default constant regions, the total length of each construct is:
+
+- **With barcodes:** `40 + (--pad-to) + 2 * (--barcode-length) + 4`
+- **Without barcodes** (`--no-barcodes`): `40 + (--pad-to)`
+
+For example, `--pad-to 130 --barcode-length 10` produces 194nt constructs; `--pad-to 130 --no-barcodes` produces 170nt constructs. If you override `--five-const` or `--three-const`, replace the `40` with the sum of their lengths.
 
 ## Padding Algorithm
 
