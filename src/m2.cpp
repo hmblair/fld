@@ -1,16 +1,28 @@
 #include "m2.hpp"
 #include "io/fasta_io.hpp"
 
-const std::vector<char> BASES = {'A', 'C', 'G', 'T'};
+const std::vector<char> DNA_BASES = {'A', 'C', 'G', 'T'};
+const std::vector<char> RNA_BASES = {'A', 'C', 'G', 'U'};
+
+// _complement() always returns a DNA-alphabet base (A/C/G/T). If the input
+// sequence is RNA (contains U), naively using its result mixes U and T in
+// the same sequence -- e.g. mutating an "A" writes a "T" into an otherwise
+// all-U-form sequence. Detect RNA input once per sequence and translate
+// accordingly, so m2's output stays in a single consistent alphabet.
+static inline bool _is_rna(const std::string& sequence) {
+    return sequence.find('U') != std::string::npos;
+}
 
 static inline void _write_single_mutant_all(
     FastaOutputStream& out,
     const std::string& header,
     const std::string& sequence,
-    int pos
+    int pos,
+    bool rna
 ) {
     char original_base = sequence[pos];
-    for (const auto& mutant_base : BASES) {
+    const std::vector<char>& bases = rna ? RNA_BASES : DNA_BASES;
+    for (const auto& mutant_base : bases) {
         if (mutant_base == original_base) {
             continue;
         }
@@ -27,7 +39,8 @@ static inline void _write_single_mutant(
     FastaOutputStream& out,
     const std::string& header,
     const std::string& sequence,
-    int pos
+    int pos,
+    bool rna
 ) {
     char original_base = sequence[pos];
     char mutant_base;
@@ -35,6 +48,9 @@ static inline void _write_single_mutant(
         mutant_base = _complement(original_base);
     } catch (const std::exception& e) {
         return;
+    }
+    if (rna && mutant_base == 'T') {
+        mutant_base = 'U';
     }
 
     std::string mutant = sequence;
@@ -54,15 +70,17 @@ static inline void _write_single_mutants(
     // Write wild type
     out.write(header + "_wt", sequence);
 
+    bool rna = _is_rna(sequence);
+
     // Write mutants
     size_t seq_len = sequence.length();
     if (all) {
         for (size_t i = 0; i < seq_len; i++) {
-            _write_single_mutant_all(out, header, sequence, i);
+            _write_single_mutant_all(out, header, sequence, i, rna);
         }
     } else {
         for (size_t i = 0; i < seq_len; i++) {
-            _write_single_mutant(out, header, sequence, i);
+            _write_single_mutant(out, header, sequence, i, rna);
         }
     }
 }
