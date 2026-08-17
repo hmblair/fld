@@ -2,6 +2,7 @@
 #define SEQUENCE_H
 
 #include <string>
+#include <vector>
 #include <random>
 
 // Valid nucleotide bases
@@ -10,6 +11,35 @@ constexpr char BASE_C = 'C';
 constexpr char BASE_G = 'G';
 constexpr char BASE_T = 'T';
 constexpr char BASE_U = 'U';
+
+// The two nucleotide alphabets. DNA uses T; RNA uses U.
+enum class Alphabet {
+    DNA,
+    RNA
+};
+
+// Returns RNA if the sequence contains U, and DNA otherwise.
+Alphabet detect_alphabet(const std::string& seq);
+
+// Returns the four bases of the given alphabet.
+const std::vector<char>& alphabet_bases(Alphabet alphabet);
+
+// Returns the Watson-Crick complement of a base, written in the given
+// alphabet. Throws on an invalid base.
+char complement(char base, Alphabet alphabet);
+
+// Converts a sequence between alphabets.
+std::string to_dna(const std::string& seq);
+std::string to_rna(const std::string& seq);
+
+// Replaces IUPAC polybase codes with random concrete bases.
+// Emits DNA bases; generation is DNA-canonical, so convert at output
+// boundaries with to_rna.
+std::string replace_polybases(const std::string& seq, std::mt19937& gen);
+
+// Generates a uniform random sequence. Emits DNA bases; generation is
+// DNA-canonical, so convert at output boundaries with to_rna.
+std::string random_sequence(size_t length, std::mt19937& gen);
 
 // A nucleotide sequence with validation and transformations
 class Sequence {
@@ -27,8 +57,6 @@ public:
     Sequence to_rna() const;
     Sequence replace_polybases(std::mt19937& gen) const;
 
-    // Get complement of a base
-    static char complement(char base);
     static bool is_valid_base(char c);
 
     // Concatenation
@@ -40,10 +68,6 @@ public:
 
 private:
     std::string _seq;
-
-    static std::string _to_dna_impl(const std::string& s);
-    static std::string _to_rna_impl(const std::string& s);
-    static std::string _replace_polybases_impl(const std::string& s, std::mt19937& gen);
 };
 
 #endif

@@ -1,4 +1,6 @@
 #include "library.hpp"
+#include "domain/sequence.hpp"
+#include "domain/padding.hpp"
 #include "utils.hpp"
 #include "io/csv_format.hpp"
 #include "io/progress.hpp"
@@ -140,30 +142,30 @@ size_t Construct::design_length() const {
 }
 
 void Construct::replace_polybases(std::mt19937 &gen) {
-    _fivep_const = _replace_polybases(_fivep_const, gen);
-    _fivep_padding = _replace_polybases(_fivep_padding, gen);
-    _design = _replace_polybases(_design, gen);
-    _threep_padding = _replace_polybases(_threep_padding, gen);
-    _barcode = _replace_polybases(_barcode, gen);
-    _threep_const = _replace_polybases(_threep_const, gen);
+    _fivep_const = ::replace_polybases(_fivep_const, gen);
+    _fivep_padding = ::replace_polybases(_fivep_padding, gen);
+    _design = ::replace_polybases(_design, gen);
+    _threep_padding = ::replace_polybases(_threep_padding, gen);
+    _barcode = ::replace_polybases(_barcode, gen);
+    _threep_const = ::replace_polybases(_threep_const, gen);
 }
 
 void Construct::to_rna() {
-    _fivep_const = _to_rna(_fivep_const);
-    _fivep_padding = _to_rna(_fivep_padding);
-    _design = _to_rna(_design);
-    _threep_padding = _to_rna(_threep_padding);
-    _barcode = _to_rna(_barcode);
-    _threep_const = _to_rna(_threep_const);
+    _fivep_const = ::to_rna(_fivep_const);
+    _fivep_padding = ::to_rna(_fivep_padding);
+    _design = ::to_rna(_design);
+    _threep_padding = ::to_rna(_threep_padding);
+    _barcode = ::to_rna(_barcode);
+    _threep_const = ::to_rna(_threep_const);
 }
 
 void Construct::to_dna() {
-    _fivep_const = _to_dna(_fivep_const);
-    _fivep_padding = _to_dna(_fivep_padding);
-    _design = _to_dna(_design);
-    _threep_padding = _to_dna(_threep_padding);
-    _barcode = _to_dna(_barcode);
-    _threep_const = _to_dna(_threep_const);
+    _fivep_const = ::to_dna(_fivep_const);
+    _fivep_padding = ::to_dna(_fivep_padding);
+    _design = ::to_dna(_design);
+    _threep_padding = ::to_dna(_threep_padding);
+    _barcode = ::to_dna(_barcode);
+    _threep_const = ::to_dna(_threep_const);
 }
 
 void Construct::replace_barcode(
@@ -184,7 +186,7 @@ void Construct::pad(
     if (padded_size < design_length()) {
         throw std::runtime_error("The design region is larger than the padded size (" + std::to_string(design_length()) + " vs " + std::to_string(padded_size) + ")." );
     }
-    _fivep_padding = _get_padding(padded_size - design_length(), config, gen);
+    _fivep_padding = get_padding(padded_size - design_length(), config, gen);
 }
 
 bool Construct::has_barcode() const {

@@ -1,5 +1,6 @@
 #include "hairpin.hpp"
 #include "sequence.hpp"
+#include "sampling.hpp"
 #include <algorithm>
 
 static const std::vector<std::string> TETRALOOPS = {"TTCG", "GTGA", "TACG"};
@@ -18,17 +19,6 @@ static const std::vector<BasePair> GU_PAIRS = {
     BasePair(BASE_T, BASE_G),
     BasePair(BASE_G, BASE_T)
 };
-
-static size_t sample_range(size_t low, size_t high, std::mt19937& gen) {
-    std::uniform_int_distribution<size_t> dist(low, high);
-    return dist(gen);
-}
-
-template <typename T>
-static T sample_vector(const std::vector<T>& values, std::mt19937& gen) {
-    size_t ix = sample_range(0, values.size() - 1, gen);
-    return values[ix];
-}
 
 bool BasePair::is_au(char b1, char b2) {
     return (b1 == BASE_A && b2 == BASE_T) || (b1 == BASE_T && b2 == BASE_A);
@@ -65,7 +55,7 @@ static std::vector<BasePair> get_bp_sample_arr(bool use_au, bool use_gc, bool us
 
 static BasePair random_base_pair(std::mt19937& gen, bool use_au, bool use_gc, bool use_gu) {
     std::vector<BasePair> bp_arr = get_bp_sample_arr(use_au, use_gc, use_gu);
-    return sample_vector(bp_arr, gen);
+    return sample_from_vector(bp_arr, gen);
 }
 
 static void update_counts(const BasePair& pair, size_t& max_au, size_t& max_gc, size_t& max_gu) {
@@ -114,7 +104,7 @@ Hairpin Hairpin::random(
     std::shuffle(pairs.begin() + closing_gc, pairs.end(), gen);
 
     // Pick a random tetraloop
-    std::string loop = sample_vector(TETRALOOPS, gen);
+    std::string loop = sample_from_vector(TETRALOOPS, gen);
 
     return Hairpin(std::move(pairs), std::move(loop));
 }

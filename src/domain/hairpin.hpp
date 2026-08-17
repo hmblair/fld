@@ -6,6 +6,9 @@
 #include <random>
 #include "../config/stem_config.hpp"
 
+// Length of the tetraloop that closes each hairpin
+constexpr size_t HAIRPIN_LOOP_LENGTH = 4;
+
 // Represents a base pair type
 enum class BasePairType {
     AU,  // A-T or T-A (using DNA nomenclature)

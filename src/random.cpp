@@ -1,4 +1,5 @@
 #include "random.hpp"
+#include "domain/sequence.hpp"
 
 
 void _random(
@@ -20,7 +21,7 @@ void _random(
     if (fasta) {
 
         for (int32_t ix = 0; ix < count; ++ix) {
-            std::string sequence = _random_sequence(length, gen);
+            std::string sequence = random_sequence(length, gen);
             std::string name = ">random_" + std::to_string(ix);
             file << name << "\n" << sequence << "\n";
         }
@@ -28,7 +29,7 @@ void _random(
     } else {
 
         for (int32_t ix = 0; ix < count; ++ix) {
-            std::string sequence = _random_sequence(length, gen);
+            std::string sequence = random_sequence(length, gen);
             file << sequence << "\n";
         }
 

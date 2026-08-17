@@ -4,7 +4,6 @@
 #include <string>
 #include <vector>
 #include <fstream>
-#include "nuc.hpp"
 #include "utils.hpp"
 
 class M2Args: public Program {

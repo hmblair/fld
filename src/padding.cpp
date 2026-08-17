@@ -1,5 +1,5 @@
 #include "padding.hpp"
-#include "nuc.hpp"
+#include "domain/padding.hpp"
 #include "utils.hpp"
 #include "io/csv_format.hpp"
 #include <fstream>
@@ -45,7 +45,7 @@ void _generate_padding(
             out << "\n";
         } else {
             size_t padding_length = pad_to - design_len;
-            std::string padding = _get_padding(padding_length, config, gen);
+            std::string padding = get_padding(padding_length, config, gen);
             out << padding << "\n";
         }
     }

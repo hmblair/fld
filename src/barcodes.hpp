@@ -1,7 +1,7 @@
 #ifndef BARCODE_H
 #define BARCODE_H
 
-#include "nuc.hpp"
+#include "config/stem_config.hpp"
 #include "utils.hpp"
 #include "io/progress.hpp"
 #include <fstream>

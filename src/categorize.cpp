@@ -1,5 +1,5 @@
 #include "categorize.hpp"
-#include "nuc.hpp"
+#include "domain/sequence.hpp"
 #include "io/fasta_io.hpp"
 #include <iostream>
 #include <map>
@@ -57,7 +57,7 @@ void _categorize(
     // Read input FASTA and categorize
     for_each_fasta(input, [&](const FastaEntry& entry) {
         size_t bin_idx = _find_bin(entry.sequence.length(), sorted_bins);
-        out_files[bin_idx] << ">" << entry.name << "\n" << _to_dna(entry.sequence) << "\n";
+        out_files[bin_idx] << ">" << entry.name << "\n" << to_dna(entry.sequence) << "\n";
         counts[bin_idx]++;
     });
 

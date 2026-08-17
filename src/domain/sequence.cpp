@@ -1,6 +1,6 @@
 #include "sequence.hpp"
+#include "sampling.hpp"
 #include <stdexcept>
-#include <vector>
 
 static const std::vector<char> A_BASES = {'A'};
 static const std::vector<char> C_BASES = {'C'};
@@ -17,6 +17,9 @@ static const std::vector<char> V_BASES = {'A', 'C', 'G'};
 static const std::vector<char> D_BASES = {'A', 'G', 'T'};
 static const std::vector<char> H_BASES = {'A', 'C', 'T'};
 static const std::vector<char> B_BASES = {'C', 'G', 'T'};
+
+static const std::vector<char> DNA_BASES = {BASE_A, BASE_C, BASE_G, BASE_T};
+static const std::vector<char> RNA_BASES = {BASE_A, BASE_C, BASE_G, BASE_U};
 
 static const std::vector<char>& get_polybase_arr(char base) {
     switch (base) {
@@ -39,15 +42,76 @@ static const std::vector<char>& get_polybase_arr(char base) {
     }
 }
 
-static size_t sample_from_range(size_t low, size_t high, std::mt19937& gen) {
-    std::uniform_int_distribution<size_t> dist(low, high);
-    return dist(gen);
+Alphabet detect_alphabet(const std::string& seq) {
+    if (seq.find(BASE_U) != std::string::npos || seq.find('u') != std::string::npos) {
+        return Alphabet::RNA;
+    }
+    return Alphabet::DNA;
 }
 
-template <typename T>
-static T sample_from_vector(const std::vector<T>& values, std::mt19937& gen) {
-    size_t ix = sample_from_range(0, values.size() - 1, gen);
-    return values[ix];
+const std::vector<char>& alphabet_bases(Alphabet alphabet) {
+    return (alphabet == Alphabet::RNA) ? RNA_BASES : DNA_BASES;
+}
+
+char complement(char base, Alphabet alphabet) {
+    switch (base) {
+        case BASE_A: return (alphabet == Alphabet::RNA) ? BASE_U : BASE_T;
+        case BASE_C: return BASE_G;
+        case BASE_G: return BASE_C;
+        case BASE_U:
+        case BASE_T: return BASE_A;
+        default:
+            throw std::runtime_error("Invalid base \"" + std::string{base} + "\".");
+    }
+}
+
+static char base_to_dna(char base) {
+    switch (base) {
+        case 'U': return 'T';
+        case 'u': return 't';
+        default:  return base;
+    }
+}
+
+static char base_to_rna(char base) {
+    switch (base) {
+        case 'T': return 'U';
+        case 't': return 'u';
+        default:  return base;
+    }
+}
+
+std::string to_dna(const std::string& seq) {
+    std::string dna(seq.length(), '\0');
+    for (size_t ix = 0; ix < seq.length(); ix++) {
+        dna[ix] = base_to_dna(seq[ix]);
+    }
+    return dna;
+}
+
+std::string to_rna(const std::string& seq) {
+    std::string rna(seq.length(), '\0');
+    for (size_t ix = 0; ix < seq.length(); ix++) {
+        rna[ix] = base_to_rna(seq[ix]);
+    }
+    return rna;
+}
+
+std::string replace_polybases(const std::string& seq, std::mt19937& gen) {
+    std::string result(seq.length(), '\0');
+    for (size_t ix = 0; ix < seq.length(); ix++) {
+        const std::vector<char>& bases = get_polybase_arr(seq[ix]);
+        result[ix] = sample_from_vector(bases, gen);
+    }
+    return result;
+}
+
+std::string random_sequence(size_t length, std::mt19937& gen) {
+    std::string seq(length, '\0');
+    for (size_t ix = 0; ix < length; ix++) {
+        seq[ix] = sample_from_vector(N_BASES, gen);
+    }
+    return seq;
 }
 
 Sequence::Sequence(std::string seq) : _seq(std::move(seq)) {}
@@ -64,57 +128,20 @@ bool Sequence::empty() const {
     return _seq.empty();
 }
 
-char Sequence::complement(char base) {
-    switch (base) {
-        case BASE_A: return BASE_T;
-        case BASE_C: return BASE_G;
-        case BASE_G: return BASE_C;
-        case BASE_U:
-        case BASE_T: return BASE_A;
-        default:
-            throw std::runtime_error("Invalid base \"" + std::string{base} + "\".");
-    }
-}
-
 bool Sequence::is_valid_base(char c) {
     return c == BASE_A || c == BASE_C || c == BASE_G || c == BASE_T || c == BASE_U;
 }
 
-std::string Sequence::_to_dna_impl(const std::string& s) {
-    std::string dna(s.length(), '\0');
-    for (size_t ix = 0; ix < s.length(); ix++) {
-        dna[ix] = (s[ix] == BASE_U) ? BASE_T : s[ix];
-    }
-    return dna;
-}
-
-std::string Sequence::_to_rna_impl(const std::string& s) {
-    std::string rna(s.length(), '\0');
-    for (size_t ix = 0; ix < s.length(); ix++) {
-        rna[ix] = (s[ix] == BASE_T) ? BASE_U : s[ix];
-    }
-    return rna;
-}
-
-std::string Sequence::_replace_polybases_impl(const std::string& s, std::mt19937& gen) {
-    std::string result(s.length(), '\0');
-    for (size_t ix = 0; ix < s.length(); ix++) {
-        const std::vector<char>& bases = get_polybase_arr(s[ix]);
-        result[ix] = sample_from_vector(bases, gen);
-    }
-    return result;
-}
-
 Sequence Sequence::to_dna() const {
-    return Sequence(_to_dna_impl(_seq));
+    return Sequence(::to_dna(_seq));
 }
 
 Sequence Sequence::to_rna() const {
-    return Sequence(_to_rna_impl(_seq));
+    return Sequence(::to_rna(_seq));
 }
 
 Sequence Sequence::replace_polybases(std::mt19937& gen) const {
-    return Sequence(_replace_polybases_impl(_seq, gen));
+    return Sequence(::replace_polybases(_seq, gen));
 }
 
 Sequence Sequence::operator+(const Sequence& other) const {

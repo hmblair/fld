@@ -1,63 +1,6 @@
 #include "barcodes.hpp"
+#include "domain/barcode.hpp"
 #include <climits>
-
-
-//
-// Hamming ball of hairpin
-//
-
-static inline char _pairing_complement(const char& base) {
-
-    // The only point mutations which preserve base-pairing (and therefore could
-    // potentially correspond to another sample from _random_hairpin) are
-    // A -> G
-    // C -> T
-    // G -> A
-    // T -> C
-    switch (base) {
-        case _A: { return _G; }
-        case _C: { return _T; }
-        case _G: { return _A; }
-        case _T: { return _C; }
-        default: {
-            throw std::runtime_error("Invalid base " + std::string{base} + ".");
-        }
-    }
-
-}
-
-static inline std::vector<std::string> _unit_hamming_ball(
-    const std::string& sequence
-) {
-
-    std::vector<std::string> results;
-
-    for (size_t ix = 0; ix < sequence.length(); ix++) {
-        std::string tmp = sequence;
-        tmp[ix] = _pairing_complement(sequence[ix]);
-        results.push_back(tmp);
-    }
-
-    results.push_back(sequence);
-    return results;
-
-}
-
-static inline bool _has_hamming_neighbour(
-    const std::string& sequence,
-    const std::unordered_set<std::string>& set
-) {
-
-    std::vector<std::string> ball = _unit_hamming_ball(sequence);
-
-    for (const auto& element : ball) {
-        if (set.find(element) != set.end()) {
-            return true;
-        }
-    }
-    return false;
-
-}
 
 
 //
@@ -168,21 +111,14 @@ std::string _random_barcode(
     std::mt19937 &gen,
     const std::unordered_set<std::string>& existing
 ) {
-    std::string barcode;
-
-    do {
-        barcode = _random_hairpin(stem_length, config, gen);
-    }
-    while (_has_hamming_neighbour(barcode, existing));
-
-    return barcode;
+    return Barcode::random(stem_length, config, gen, existing).str();
 }
 
 bool _insert_if_not_neighbour(
     const std::string& sequence,
     std::unordered_set<std::string>& barcodes
 ) {
-    bool is_neighbour = _has_hamming_neighbour(sequence, barcodes);
+    bool is_neighbour = Barcode(sequence).has_hamming_neighbor(barcodes);
     if (!is_neighbour) {
         barcodes.insert(sequence);
     }

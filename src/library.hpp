@@ -16,7 +16,6 @@
 #ifndef LIBRARY_H
 #define LIBRARY_H
 
-#include "nuc.hpp"
 #include "barcodes.hpp"
 #include "utils.hpp"
 #include "config/design_config.hpp"

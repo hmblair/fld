@@ -1,5 +1,5 @@
 #include "torna.hpp"
-#include "nuc.hpp"
+#include "domain/sequence.hpp"
 #include "io/fasta_io.hpp"
 #include <iostream>
 
@@ -19,7 +19,7 @@ void _to_rna(
     bool overwrite
 ) {
     size_t count = transform_fasta(input_fasta, output_fasta, overwrite,
-        [](const FastaEntry& entry) { return _to_rna(entry.sequence); });
+        [](const FastaEntry& entry) { return to_rna(entry.sequence); });
 
     std::cout << "Converted " << count << " sequences to RNA.\n";
     std::cout << "Output: " << output_fasta << "\n";
